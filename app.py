@@ -24,9 +24,6 @@ import requests
 # FREE AI PROVIDERS - NO API KEYS NEEDED
 # ============================================
 
-# ============================================
-# FREE AI PROVIDERS - NO API KEYS NEEDED
-# ============================================
 
 def ai_call(system_prompt: str, user_prompt: str, temperature: float = 0.4):
     """
@@ -151,7 +148,7 @@ def generate_mock_response(system_prompt: str, user_prompt: str) -> str:
             lines.append(context_block)
 
         return "\n".join(lines)
-
+      
     # ---- 2) SAFEST MODE BETWEEN TWO COUNTRIES (e.g. India ↔ USA) ----
     countries_mentioned = detect_countries(user_prompt)
     origin = dest = None
@@ -316,6 +313,42 @@ def generate_mock_response(system_prompt: str, user_prompt: str) -> str:
         lines.append("- Mix geographies (e.g. Europe + Asia hubs) to diversify geopolitical risk.")
         lines.append("- Combine modes (sea + air, rail + truck) for strategic SKUs.")
         lines.append("- Align your sourcing strategy with the chosen network lanes.")
+
+        if context_block:
+            lines.append(context_block)
+
+        return "\n".join(lines)
+    # ---- UNIVERSAL LOGIC: safest / cheapest route between countries ----
+    if any(word in lower for word in ["safest", "cheap", "cheapest", "best route", "optimal route"]) and origin and dest:
+        today = date.today()
+        modes = ["sea", "air", "road", "rail"]
+
+        results = []
+        for m in modes:
+            r = compute_route_risk(origin, dest, m, today, "Balanced", True)
+            results.append((m, r["overall"], r))
+
+        # Safest = lowest risk
+        safest_mode, safest_score, safest_risks = sorted(results, key=lambda x: x[1])[0]
+
+        # Cheapest estimation (domain realistic)
+        cost_order = {"sea": 1, "rail": 2, "road": 3, "air": 4}
+        cheapest_mode = min(modes, key=lambda m: cost_order[m])
+
+        lines = []
+        lines.append(f"**🌐 Route Assessment: {origin} → {dest}**")
+
+        lines.append("\n### 🟢 Safest mode")
+        lines.append(f"- **{safest_mode.upper()}** with modeled risk **{safest_score}/100**")
+
+        lines.append("\n### 🟣 Cheapest mode")
+        lines.append("- **SEA freight** (lowest global cost baseline)")
+
+        lines.append("\n### 🔄 Trade-off Summary")
+        lines.append("- **Air** → safest + fastest, highest cost")
+        lines.append("- **Sea** → cheapest, slowest, highest climate/logistics risk")
+        lines.append("- **Rail** → stable for Asia–EU lanes")
+        lines.append("- **Road** → regional only")
 
         if context_block:
             lines.append(context_block)
@@ -909,7 +942,11 @@ def render_scenario_lab():
         run = st.button("Run stress scenario")
 
     with card("Results"):
+        # Load existing scenario if present
+        stressed = st.session_state.get("scenario")
+
         if run:
+            # Compute stressed scores
             stressed = {
                 "geopolitical": round(rs["geopolitical"] * geo_m, 1),
                 "climate": round(rs["climate"] * cli_m, 1),
@@ -917,23 +954,35 @@ def render_scenario_lab():
                 "cyber": round(rs["cyber"] * cyb_m, 1)
             }
             ov = (
-                stressed["geopolitical"]*0.35 +
-                stressed["climate"]*0.3 +
-                stressed["logistics"]*0.25 +
-                stressed["cyber"]*0.1
+                stressed["geopolitical"] * 0.35 +
+                stressed["climate"] * 0.3 +
+                stressed["logistics"] * 0.25 +
+                stressed["cyber"] * 0.1
             )
-            stressed["overall"] = float(np.clip(round(ov,1),0,100))
+            stressed["overall"] = float(np.clip(round(ov, 1), 0, 100))
 
+            # Save permanently so "Explain with AI" works
+            st.session_state["scenario"] = stressed
+
+        if stressed:
             df = pd.DataFrame({
-                "Dimension":["Geopolitics","Climate","Logistics","Cyber","Overall"],
-                "Base":[rs["geopolitical"],rs["climate"],rs["logistics"],rs["cyber"],rs["overall"]],
-                "Stressed":[stressed[k] for k in ["geopolitical","climate","logistics","cyber","overall"]]
+                "Dimension": ["Geopolitics", "Climate", "Logistics", "Cyber", "Overall"],
+                "Base": [
+                    rs["geopolitical"], rs["climate"],
+                    rs["logistics"], rs["cyber"], rs["overall"]
+                ],
+                "Stressed": [
+                    stressed["geopolitical"], stressed["climate"],
+                    stressed["logistics"], stressed["cyber"], stressed["overall"]
+                ]
             })
+
             st.dataframe(df, hide_index=True, use_container_width=True)
 
             if st.button("Explain with AI", key="explain_scenario"):
                 prompt = f"Base={rs}\nStressed={stressed}\nExplain scenario."
                 st.markdown(ai_call("You explain scenarios.", prompt))
+
         else:
             st.info("Run a scenario above.")
 
