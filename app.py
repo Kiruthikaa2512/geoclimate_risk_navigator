@@ -743,34 +743,50 @@ def render_scenario_lab():
         log_m = st.slider("Logistics multiplier", 0.8, 1.6, 1.1)
         cyb_m = st.slider("Cyber multiplier", 0.8, 1.5, 1.0)
 
-        run = st.button("Run stress scenario")
+        # 👇 FIX: Remember button click using session_state
+        if st.button("Run stress scenario", key="run_stress"):
+            st.session_state["run_stress"] = True
+            st.session_state["stress_values"] = {
+                "geo_m": geo_m,
+                "cli_m": cli_m,
+                "log_m": log_m,
+                "cyb_m": cyb_m,
+            }
 
     with card("Results"):
-        if run:
+        # 👇 FIX: Only show results after user runs scenario
+        if st.session_state.get("run_stress"):
+            vals = st.session_state["stress_values"]
+
             stressed = {
-                "geopolitical": round(rs["geopolitical"] * geo_m, 1),
-                "climate": round(rs["climate"] * cli_m, 1),
-                "logistics": round(rs["logistics"] * log_m, 1),
-                "cyber": round(rs["cyber"] * cyb_m, 1)
+                "geopolitical": round(rs["geopolitical"] * vals["geo_m"], 1),
+                "climate": round(rs["climate"] * vals["cli_m"], 1),
+                "logistics": round(rs["logistics"] * vals["log_m"], 1),
+                "cyber": round(rs["cyber"] * vals["cyb_m"], 1)
             }
+
             ov = (
-                stressed["geopolitical"]*0.35 +
-                stressed["climate"]*0.3 +
-                stressed["logistics"]*0.25 +
-                stressed["cyber"]*0.1
+                stressed["geopolitical"] * 0.35 +
+                stressed["climate"] * 0.3 +
+                stressed["logistics"] * 0.25 +
+                stressed["cyber"] * 0.1
             )
-            stressed["overall"] = float(np.clip(round(ov,1),0,100))
+            stressed["overall"] = float(np.clip(round(ov, 1), 0, 100))
 
             df = pd.DataFrame({
-                "Dimension":["Geopolitics","Climate","Logistics","Cyber","Overall"],
-                "Base":[rs["geopolitical"],rs["climate"],rs["logistics"],rs["cyber"],rs["overall"]],
-                "Stressed":[stressed[k] for k in ["geopolitical","climate","logistics","cyber","overall"]]
+                "Dimension": ["Geopolitics", "Climate", "Logistics", "Cyber", "Overall"],
+                "Base": [rs["geopolitical"], rs["climate"], rs["logistics"], rs["cyber"], rs["overall"]],
+                "Stressed": [
+                    stressed[k] for k in ["geopolitical", "climate", "logistics", "cyber", "overall"]
+                ]
             })
+
             st.dataframe(df, hide_index=True, use_container_width=True)
 
-            if st.button("Explain with AI", key="explain_scenario"):
+            if st.button("Explain with AI", key="explain_stress"):
                 prompt = f"Base={rs}\nStressed={stressed}\nExplain scenario."
                 st.markdown(ai_call("You explain scenarios.", prompt))
+
         else:
             st.info("Run a scenario above.")
 
