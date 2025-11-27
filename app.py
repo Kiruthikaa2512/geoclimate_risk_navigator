@@ -34,217 +34,366 @@ def ai_call(system_prompt: str, user_prompt: str, temperature: float = 0.4):
     """
     return generate_mock_response(system_prompt, user_prompt)
 
-def generate_mock_response(system_prompt: str, user_prompt: str):
+def generate_mock_response(system_prompt: str, user_prompt: str) -> str:
     """
-    Smart mock responses that look real and are context-aware
+    Heuristic / rule-based 'AI' brain for the app.
+    - Uses session_state context when available
+    - Handles route explanations, scenarios, optimizer, and free-form strategy Q&A
+    - No external API calls
     """
-    # Route analysis
-    if "Route:" in user_prompt and "→" in user_prompt:
-        if "China" in user_prompt and "USA" in user_prompt and "SEA" in user_prompt:
-            return """
-**🌍 AI Route Analysis: China → USA (Sea Route)**
+    lower = user_prompt.lower()
 
-**Risk Assessment:**
-- **Overall Risk Level:** High (50.1/100)
-- **Primary Concern:** Logistics disruptions and cyber vulnerabilities
+    # ---- Pull context from the app ----
+    route = st.session_state.get("last_route")
+    risks = st.session_state.get("last_risks")
+    scenario = st.session_state.get("scenario")
+    options = st.session_state.get("optimizer_options")
 
-**Top Risk Drivers:**
-1. **Logistics (60.4):** Port congestion in major Chinese and US West Coast ports, shipping delays due to capacity constraints
-2. **Cyber (57.5):** Elevated threat from state-sponsored actors targeting trade data and shipping manifests
-3. **Geopolitics (45.0):** Ongoing trade tensions and regulatory uncertainties affecting customs clearance
-4. **Climate (45.0):** Seasonal typhoon patterns in South China Sea affecting shipping schedules
+    context_block = ""
+    if route and risks:
+        context_block += (
+            f"\n\n**Current lane in tool:** "
+            f"{route['origin']} → {route['dest']} via {route['mode'].upper()} "
+            f"(overall risk {risks['overall']}/100)"
+        )
+    if scenario:
+        context_block += "\n\n**Scenario context:** " + str(scenario)
+    if options:
+        context_block += f"\n\n**Network options configured:** {len(options)} alternatives."
 
-**Recommended Mitigations:**
-- Implement multi-modal transport strategies with rail alternatives
-- Enhance cybersecurity protocols for cargo tracking systems
-- Develop alternative routing via Southeast Asian ports
-- Consider cargo insurance for high-value shipments exceeding $500K
+    # ---- Helpers ----
+    def detect_countries(text: str):
+        t = text.lower()
+        hits = []
+        for c in COUNTRY_LIST:
+            if c.lower() in t:
+                hits.append(c)
+        # preserve order, unique
+        return list(dict.fromkeys(hits))
 
-**Alternative Considerations:**
-- Air freight reduces logistics risk by 40% but increases cost by 60-80%
-- Routing via Singapore improves cyber security posture by 25%
-- Consider Canadian West Coast ports as alternative entry points
-"""
+    def describe_dominant_risks(r: dict) -> list[str]:
+        dims = [
+            ("Geopolitics", r["geopolitical"]),
+            ("Climate", r["climate"]),
+            ("Logistics", r["logistics"]),
+            ("Cyber", r["cyber"]),
+        ]
+        dims.sort(key=lambda x: x[1], reverse=True)
+        lines = []
+        for name, val in dims[:3]:
+            if name == "Geopolitics":
+                driver = "geopolitical tensions, regulatory shifts or sanctions exposure"
+            elif name == "Climate":
+                driver = "weather volatility, storms, flooding and seasonal disruption"
+            elif name == "Logistics":
+                driver = "port congestion, infrastructure bottlenecks and capacity constraints"
+            else:
+                driver = "data security, ransomware and technology dependencies"
+            lines.append(f"- **{name} ({val}/100)** — driven by {driver}.")
+        return lines
 
-        elif "China" in user_prompt and "USA" in user_prompt and "AIR" in user_prompt:
-            return """
-**🌍 AI Route Analysis: China → USA (Air Route)**
+    # ---- 1) EXPLAIN ROUTE (used by Route Analyzer 'Explain with AI') ----
+    if "route:" in lower and "scores:" in lower and route and risks:
+        lines = []
+        lines.append(
+            f"**🌍 Lane Intelligence: {route['origin']} → {route['dest']} ({route['mode'].upper()})**"
+        )
+        lines.append("")
+        lines.append(
+            f"- **Overall risk:** **{risks['overall']}/100** "
+            f"({risk_level(risks['overall'])} band)"
+        )
+        lines.append(
+            f"- **Breakdown:** Geo {risks['geopolitical']}, "
+            f"Climate {risks['climate']}, Logistics {risks['logistics']}, "
+            f"Cyber {risks['cyber']}."
+        )
+        lines.append("")
 
-**Risk Assessment:**
-- **Overall Risk Level:** Moderate (38.2/100) 
-- **Primary Benefit:** Significantly reduced transit time and logistics risk
+        lines.append("**Top risk drivers for this lane:**")
+        lines.extend(describe_dominant_risks(risks))
+        lines.append("")
 
-**Key Advantages:**
-- **Logistics Risk:** Reduced from 60.4 to 32.1
-- **Transit Time:** 2-3 days vs 25-35 days by sea
-- **Climate Impact:** Minimal weather-related disruptions
+        # Mode-specific commentary
+        mode = route["mode"]
+        if mode == "sea":
+            lines.append(
+                "- **Sea freight notes:** Sensitive to port congestion, maritime chokepoints "
+                "(e.g. Suez, Red Sea) and seasonal storms along the route."
+            )
+        elif mode == "air":
+            lines.append(
+                "- **Air freight notes:** Reduces logistics and climate exposure but increases cost; "
+                "capacity and belly-space constraints can still create volatility."
+            )
+        elif mode == "road":
+            lines.append(
+                "- **Road freight notes:** Flexible rerouting is possible, but vulnerable to "
+                "border queues, regulatory checks and road infrastructure quality."
+            )
+        elif mode == "rail":
+            lines.append(
+                "- **Rail notes:** Typically stable schedules and lower weather sensitivity, "
+                "but slower to reroute during disruption."
+            )
 
-**Trade-offs:**
-- **Cost Premium:** 60-80% higher than sea freight
-- **Capacity Constraints:** Limited for oversized cargo
-- **Carbon Footprint:** 5-7x higher emissions
+        # Mitigation guidance
+        lines.append("")
+        lines.append("**Mitigation playbook:**")
+        lines.append("- Design a **primary lane** and at least one **pre-agreed fallback route**.")
+        lines.append("- Align **incoterms, SLAs and insurance** with the current risk level.")
+        lines.append("- Implement **lane-level monitoring** (ports, borders, weather, cyber).")
+        lines.append(
+            "- Use **multi-modal combinations** (e.g. sea + air, rail + truck) for critical flows."
+        )
 
-**Best For:** Time-sensitive, high-value electronics and pharmaceuticals
-"""
+        if context_block:
+            lines.append(context_block)
 
-        elif "India" in user_prompt:
-            return """
-**🌍 AI Route Analysis: India Route**
+        return "\n".join(lines)
 
-**Risk Assessment:**
-- **Overall Risk Level:** Moderate to High (55-65/100)
-- **Primary Concern:** Climate exposure and infrastructure challenges
+    # ---- 2) SAFEST MODE BETWEEN TWO COUNTRIES (e.g. India ↔ USA) ----
+    countries_mentioned = detect_countries(user_prompt)
+    origin = dest = None
+    if len(countries_mentioned) >= 2:
+        origin, dest = countries_mentioned[0], countries_mentioned[1]
+    elif route:
+        origin, dest = route["origin"], route["dest"]
 
-**Key Insights:**
-- Monsoon season (June-September) significantly impacts shipping schedules
-- Port infrastructure modernization reducing traditional delays by 30%
-- Growing cyber resilience in regional logistics networks
+    safe_words = ["safe", "safest", "lower risk", "least risk", "secure"]
+    mode_words = ["mode", "air", "sea", "ocean", "ship", "road", "truck", "rail", "freight"]
 
-**Strategic Recommendations:**
-- Schedule around monsoon season for critical shipments
-- Implement real-time weather monitoring and alert systems
-- Diversify port options between Mumbai, Chennai, and Visakhapatnam
-- Consider Colombo, Sri Lanka as transshipment alternative
-"""
+    is_safety_question = any(w in lower for w in safe_words) and any(
+        w in lower for w in mode_words
+    )
 
+    if is_safety_question and origin and dest:
+        # Compare modes using your risk model
+        today = date.today()
+        mode_results = []
+        for m in ["sea", "air", "road", "rail"]:
+            r = compute_route_risk(origin, dest, m, today, "Balanced", True)
+            mode_results.append((m, r["overall"], r))
+
+        mode_results.sort(key=lambda x: x[1])  # lower = safer
+        best_mode, best_score, best_risks = mode_results[0]
+
+        lines = []
+        lines.append(f"**🧭 Safety-Focused Mode Comparison: {origin} → {dest}**")
+        lines.append("")
+        lines.append("**Mode ranking (lower score = safer):**")
+        for m, score, r in mode_results:
+            lines.append(
+                f"- **{m.upper()}** → overall risk **{score}/100** "
+                f"(Geo {r['geopolitical']}, Climate {r['climate']}, "
+                f"Logistics {r['logistics']}, Cyber {r['cyber']})"
+            )
+
+        lines.append("")
+        lines.append(
+            f"**Recommended primary mode for safety:** **{best_mode.upper()}** "
+            f"with modeled risk **{best_score}/100**."
+        )
+
+        # Reasoning by mode
+        reason = []
+        if best_mode == "air":
+            reason.append("avoids the most volatile maritime chokepoints and port queues")
+            reason.append("reduces exposure to multi-week ocean storms and congestion")
+            reason.append("offers tighter transit-time control for critical cargo")
+        elif best_mode == "sea":
+            reason.append("is cost-efficient for large volumes, enabling diversified routings")
+            reason.append("can be shifted across different ports and carriers when disruption hits")
+        elif best_mode == "road":
+            reason.append("works best for regional corridors with flexible rerouting options")
+        elif best_mode == "rail":
+            reason.append("benefits from relatively stable timetables and lower weather sensitivity")
+
+        if reason:
+            lines.append("**Why this mode wins for safety:**")
+            lines.extend([f"- {r}" for r in reason])
+
+        lines.append("")
+        lines.append("**Practical playbook:**")
+        lines.append("- Use the safest mode for high-value or time-critical flows.")
+        lines.append("- Keep a secondary mode contracted as a contingency option.")
+        lines.append("- Align insurance, SLAs and monitoring with the chosen risk profile.")
+
+        if context_block:
+            lines.append(context_block)
+
+        return "\n".join(lines)
+
+    # ---- 3) SCENARIO LAB EXPLANATION (Base=..., Stressed=...) ----
+    if "base=" in lower and "stressed=" in lower:
+        lines = []
+        lines.append("**📊 Scenario Lab – Stress Test Interpretation**")
+        lines.append("")
+        lines.append(
+            "- The stressed scenario increases one or more risk dimensions versus the base case."
+        )
+        lines.append(
+            "- Focus on where the **percentage change** is greatest (often Climate or Logistics)."
+        )
+        lines.append("")
+        lines.append("**How to read it:**")
+        lines.append(
+            "- If **Climate** jumps strongly, treat the lane as more sensitive to storms, floods "
+            "or heatwaves — adjust schedules and inventory buffers accordingly."
+        )
+        lines.append(
+            "- If **Logistics** spikes, assume port, terminal or carrier disruptions — prepare "
+            "alternative routings and backup capacity."
+        )
+        lines.append(
+            "- If **Geopolitics** rises, revisit sanctions, export controls and regulatory checks."
+        )
+        lines.append(
+            "- If **Cyber** rises, review TMS/WMS, partners’ security posture and incident response."
+        )
+        lines.append("")
+        lines.append("**Resilience actions under stress:**")
+        lines.append("- Build in additional lead-time for the stressed scenario.")
+        lines.append("- Increase safety stock or strategic buffers at key nodes.")
+        lines.append("- Pre-negotiate alternative carriers, ports and modes.")
+        lines.append("- Run playbooks for extreme but plausible disruptions.")
+
+        if context_block:
+            lines.append(context_block)
+
+        return "\n".join(lines)
+
+    # ---- 4) ROUTE COMPARISON (Compare these routes: ...) ----
+    if "compare these routes" in lower or "lane" in lower and "overall" in lower:
+        lines = []
+        lines.append("**🔄 Multi-Route Comparison & Recommendation**")
+        lines.append("")
+        lines.append(
+            "- Prefer lanes with **lower overall risk** where service and cost are acceptable."
+        )
+        lines.append(
+            "- When routes have similar overall risk, choose the one with **lower Logistics and "
+            "Climate scores**, as these tend to drive day-to-day disruption."
+        )
+        lines.append("")
+        lines.append("**Typical trade-off logic:**")
+        lines.append("- Air vs Sea: air is safer for time-critical freight; sea wins on cost.")
+        lines.append(
+            "- Europe vs Asia origin: European origins often bring lower geopolitical volatility "
+            "but may have longer transit and higher cost."
+        )
+        lines.append(
+            "- Singapore / Netherlands hubs: frequently provide more resilient infrastructure and "
+            "cyber posture than regional alternatives."
+        )
+        lines.append("")
+        lines.append(
+            "Use low-risk routes for your **core, high-volume flows**, and keep a small share on "
+            "alternative lanes to preserve agility."
+        )
+
+        if context_block:
+            lines.append(context_block)
+
+        return "\n".join(lines)
+
+    # ---- 5) NETWORK OPTIMIZER EXPLANATION (Options=..., Advise best choice) ----
+    if "options=" in lower and "advise best choice" in lower:
+        lines = []
+        lines.append("**🎯 Network Optimizer – Recommended Configuration**")
+        lines.append("")
+        lines.append(
+            "- Select as your **primary option** the lane with the **lowest overall risk** that "
+            "still meets service and cost constraints."
+        )
+        lines.append(
+            "- Use the **second-best option** as a formal, contracted contingency with "
+            "pre-defined triggers (e.g. corridor closure, war-risk premiums, major port outage)."
+        )
+        lines.append("")
+        lines.append("**Design principles:**")
+        lines.append("- Avoid concentration in a single corridor or single port cluster.")
+        lines.append("- Mix geographies (e.g. Europe + Asia hubs) to diversify geopolitical risk.")
+        lines.append("- Combine modes (sea + air, rail + truck) for strategic SKUs.")
+        lines.append("- Align your sourcing strategy with the chosen network lanes.")
+
+        if context_block:
+            lines.append(context_block)
+
+        return "\n".join(lines)
+
+    # ---- 6) GENERAL STRATEGY QUESTIONS (AI Strategy Room) ----
+    if "?" in user_prompt or "strategy" in lower or "plan" in lower:
+        lines = []
+        lines.append("**🤖 Strategic Advisory Response**")
+        lines.append("")
+        lines.append("**1. Situation framing**")
+        if origin and dest:
+            lines.append(
+                f"- You are moving freight between **{origin}** and **{dest}**, combining "
+                "geopolitical, climate, logistics and cyber risks."
+            )
         else:
-            # Generic route analysis
-            return """
-**🌍 AI Route Analysis**
+            lines.append(
+                "- You are balancing service, cost and risk across a multi-country supply network."
+            )
+        if route and risks:
+            lines.append(
+                f"- Current lane in focus: **{route['origin']} → {route['dest']} "
+                f"({route['mode'].upper()})**, overall risk **{risks['overall']}/100**."
+            )
 
-**Overall Assessment:** Moderate risk profile with specific mitigation opportunities.
+        lines.append("")
+        lines.append("**2. Immediate priorities (0–3 months)**")
+        lines.append("- Identify your **top 5 critical lanes** by value and service sensitivity.")
+        lines.append("- For each, define a **primary route** and at least one **fallback lane**.")
+        lines.append("- Tighten **cyber hygiene** for core logistics systems and partners.")
+        lines.append(
+            "- Adjust **sailing / flight windows** around known climate seasons (monsoon, hurricanes, typhoons)."
+        )
 
-**Key Observations:**
-- Supply chain resilience can be improved through route diversification
-- Real-time monitoring recommended for dynamic risk conditions
-- Consider regional partnerships for enhanced security
+        lines.append("")
+        lines.append("**3. Medium-term moves (3–12 months)**")
+        lines.append("- Stand up a **lane risk dashboard** with monthly geo/climate/logistics signals.")
+        lines.append("- Build a **playbook library** for disruptions (port closure, strike, corridor conflict).")
+        lines.append("- Pilot **multi-sourcing** and **multi-hub** strategies for key SKUs.")
+        lines.append("- Introduce **predictive ETA and capacity monitoring** for high-risk lanes.")
 
-**Actionable Insights:**
-- Implement predictive analytics for route optimization
-- Develop contingency plans for geopolitical escalations
-- Regular security audits for cyber vulnerabilities
-- Climate adaptation strategies for seasonal variations
-"""
+        lines.append("")
+        lines.append("**4. Long-term design (12+ months)**")
+        lines.append("- Develop a **digital twin** of your end-to-end network for scenario simulation.")
+        lines.append("- Align **sustainability, cost and resilience** targets per lane.")
+        lines.append(
+            "- Institutionalize a **cross-functional risk council** (Supply Chain, Finance, Risk, Commercial)."
+        )
 
-    # Scenario analysis
-    elif "scenario" in user_prompt.lower() or "stressed" in user_prompt:
-        return """
-**📊 Scenario Analysis Results**
+        if context_block:
+            lines.append(context_block)
 
-**Impact Assessment:**
-- Stress scenario shows 15-25% increase in overall risk exposure
-- Logistics and climate factors most sensitive to external shocks
-- Cyber risk shows highest volatility under stress conditions
+        return "\n".join(lines)
 
-**Resilience Recommendations:**
-1. **Build redundancy** into critical supply chain nodes
-2. **Develop early warning systems** for climate disruptions
-3. **Strengthen cyber infrastructure** against escalating threats
-4. **Establish alternative supplier networks** in different regions
-
-**Business Continuity Measures:**
-- Recommended contingency budget: 10-15% of cargo value
-- Insurance coverage review advised for climate-related risks
-- Multi-sourcing strategy for critical components
-"""
-
-    # Route comparison
-    elif "compare" in user_prompt.lower() or "Lane" in user_prompt:
-        return """
-**🔄 Multi-Route Comparison Analysis**
-
-**Performance Ranking:**
-1. **Singapore → USA (Sea):** Overall Risk 32.1 - Best balance
-2. **Netherlands → USA (Sea):** Overall Risk 38.4 - Most reliable
-3. **China → USA (Air):** Overall Risk 45.2 - Fastest option
-4. **China → USA (Sea):** Overall Risk 50.1 - Cost leader
-
-**Trade-off Analysis:**
-- **Cost vs. Speed:** Air routes 3-5x faster but 2-3x more expensive
-- **Risk vs. Reliability:** European routes more stable but longer transit
-- **Strategic Value:** Diversified routing reduces single-point failures by 60%
-
-**Final Recommendation:**
-- **For time-sensitive cargo:** China → USA (Air)
-- **For cost-optimized shipping:** Singapore → USA (Sea) 
-- **For risk diversification:** 60% via Singapore, 40% via China
-"""
-
-    # Network optimization
-    elif "optimize" in user_prompt.lower() or "alternative" in user_prompt:
-        return """
-**🎯 Network Optimization Strategy**
-
-**Optimal Configuration Identified:**
-- **Primary Route:** Singapore → USA (Sea) - 32.1 risk score
-- **Secondary Route:** China → USA (Air) - 45.2 risk score  
-- **Backup Route:** Netherlands → USA (Sea) - 38.4 risk score
-
-**Risk Reduction Achieved:**
-- 35% improvement over China → USA sea route baseline
-- 28% lower logistics risk through established corridors
-- Enhanced cyber security via Singapore's infrastructure
-- Better climate resilience with multiple routing options
-
-**Implementation Roadmap:**
-1. **Phase 1 (30 days):** Implement Singapore primary routing
-2. **Phase 2 (60 days):** Establish China air route for premium services
-3. **Phase 3 (90 days):** Full multi-route optimization with continuous monitoring
-"""
-
-    # Strategy questions
-    elif "?" in user_prompt or "ask" in user_prompt.lower():
-        return """
-**🤖 Strategic Advisory Response**
-
-Based on comprehensive analysis of your supply chain configuration, here are the key strategic insights:
-
-**Immediate Priorities (0-3 months):**
-1. **Diversify geographic exposure** to mitigate regional disruptions
-2. **Enhance digital security** across all logistics platforms
-3. **Implement climate-resilient scheduling** for seasonal variations
-
-**Medium-term Initiatives (3-12 months):**
-- Develop AI-powered predictive analytics for dynamic routing
-- Establish cross-functional risk monitoring team
-- Build supplier resilience assessment framework
-
-**Long-term Strategy (12+ months):**
-- Digital twin implementation for supply chain simulation
-- Blockchain integration for enhanced security and transparency
-- Sustainable logistics partnership development
-
-**Expected Outcomes:**
-- 25-40% reduction in supply chain disruptions
-- 15-20% improvement in delivery reliability  
-- 30% faster response to emerging risks
-"""
-
-    # Default comprehensive analysis
-    else:
-        return """
+    # ---- 7) DEFAULT EXECUTIVE SUMMARY ----
+    return """
 **🌐 GeoClimate AI Command Center Analysis**
 
-**Executive Summary:**
-This comprehensive risk assessment identifies several optimization opportunities for your global supply chain network. The analysis incorporates real-time geopolitical, climate, logistics, and cyber risk factors.
+**Executive Summary**  
+This assessment highlights multiple opportunities to improve resilience, cost and service across your global network. It considers geopolitics, climate, logistics and cyber risk as an integrated system.
 
-**Key Findings:**
-1. **Logistics Optimization:** Potential 25% improvement through route diversification
-2. **Risk Mitigation:** 35% reduction achievable via multi-modal strategies  
-3. **Cost Efficiency:** 15-20% savings through optimized routing and scheduling
+**Key Insights**
+- **Route diversification** can reduce disruption exposure by 25–40% on critical lanes.  
+- **Climate-aware scheduling** (monsoon, hurricane, typhoon seasons) significantly improves on-time performance.  
+- Strengthening **cyber security** for logistics platforms lowers the likelihood of high-impact outages.  
 
-**Recommended Action Plan:**
-- Conduct detailed cost-benefit analysis for recommended changes
-- Schedule executive stakeholder review within 30 days
-- Implement pilot program for highest-impact improvements
-- Establish KPI tracking for risk reduction and performance metrics
+**Recommended Actions**
+1. Identify your top risk-weighted lanes and define clear primary and backup routings.  
+2. Use multi-modal options (sea + air, rail + truck) for high-value or time-critical flows.  
+3. Implement monitoring of ports, corridors and weather to trigger pre-defined playbooks.  
+4. Regularly review sourcing and network design as geopolitics and climate patterns evolve.  
 
-**Next Steps:**
-1. Run specific route analyses for detailed recommendations
-2. Utilize scenario lab for stress testing
-3. Engage network optimizer for alternative configurations
-4. Export comprehensive reports for stakeholder review
+Use the Route Analyzer, Scenario Lab and Network Optimizer together to turn this into a living,
+adaptive supply chain design rather than a one-off study.
 """
+
 # ============================================================
 # PAGE CONFIG
 # ============================================================
@@ -582,11 +731,25 @@ from contextlib import contextmanager
 
 @contextmanager
 def card(title=None):
-    st.markdown('<div class="gc-card">', unsafe_allow_html=True)
-    if title:
-        st.markdown(f'<p class="tiny-label">{title}</p>', unsafe_allow_html=True)
-    yield
-    st.markdown('</div>', unsafe_allow_html=True)
+    # Create a real Streamlit container
+    container = st.container()
+    with container:
+        # Inject your styled card DIV
+        st.markdown("<div class='gc-card'>", unsafe_allow_html=True)
+
+        # Render the title if provided
+        if title:
+            st.markdown(f"<p class='tiny-label'>{title}</p>", unsafe_allow_html=True)
+
+        # Create another internal container for widgets
+        inner = st.container()
+        with inner:
+            yield  # ALL widgets live here (safe)
+
+        # Close the HTML DIV
+        st.markdown("</div>", unsafe_allow_html=True)
+
+
 
 
 # ============================================================
@@ -743,50 +906,34 @@ def render_scenario_lab():
         log_m = st.slider("Logistics multiplier", 0.8, 1.6, 1.1)
         cyb_m = st.slider("Cyber multiplier", 0.8, 1.5, 1.0)
 
-        # 👇 FIX: Remember button click using session_state
-        if st.button("Run stress scenario", key="run_stress"):
-            st.session_state["run_stress"] = True
-            st.session_state["stress_values"] = {
-                "geo_m": geo_m,
-                "cli_m": cli_m,
-                "log_m": log_m,
-                "cyb_m": cyb_m,
-            }
+        run = st.button("Run stress scenario")
 
     with card("Results"):
-        # 👇 FIX: Only show results after user runs scenario
-        if st.session_state.get("run_stress"):
-            vals = st.session_state["stress_values"]
-
+        if run:
             stressed = {
-                "geopolitical": round(rs["geopolitical"] * vals["geo_m"], 1),
-                "climate": round(rs["climate"] * vals["cli_m"], 1),
-                "logistics": round(rs["logistics"] * vals["log_m"], 1),
-                "cyber": round(rs["cyber"] * vals["cyb_m"], 1)
+                "geopolitical": round(rs["geopolitical"] * geo_m, 1),
+                "climate": round(rs["climate"] * cli_m, 1),
+                "logistics": round(rs["logistics"] * log_m, 1),
+                "cyber": round(rs["cyber"] * cyb_m, 1)
             }
-
             ov = (
-                stressed["geopolitical"] * 0.35 +
-                stressed["climate"] * 0.3 +
-                stressed["logistics"] * 0.25 +
-                stressed["cyber"] * 0.1
+                stressed["geopolitical"]*0.35 +
+                stressed["climate"]*0.3 +
+                stressed["logistics"]*0.25 +
+                stressed["cyber"]*0.1
             )
-            stressed["overall"] = float(np.clip(round(ov, 1), 0, 100))
+            stressed["overall"] = float(np.clip(round(ov,1),0,100))
 
             df = pd.DataFrame({
-                "Dimension": ["Geopolitics", "Climate", "Logistics", "Cyber", "Overall"],
-                "Base": [rs["geopolitical"], rs["climate"], rs["logistics"], rs["cyber"], rs["overall"]],
-                "Stressed": [
-                    stressed[k] for k in ["geopolitical", "climate", "logistics", "cyber", "overall"]
-                ]
+                "Dimension":["Geopolitics","Climate","Logistics","Cyber","Overall"],
+                "Base":[rs["geopolitical"],rs["climate"],rs["logistics"],rs["cyber"],rs["overall"]],
+                "Stressed":[stressed[k] for k in ["geopolitical","climate","logistics","cyber","overall"]]
             })
-
             st.dataframe(df, hide_index=True, use_container_width=True)
 
-            if st.button("Explain with AI", key="explain_stress"):
+            if st.button("Explain with AI", key="explain_scenario"):
                 prompt = f"Base={rs}\nStressed={stressed}\nExplain scenario."
                 st.markdown(ai_call("You explain scenarios.", prompt))
-
         else:
             st.info("Run a scenario above.")
 
