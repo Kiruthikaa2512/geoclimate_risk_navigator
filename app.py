@@ -669,7 +669,7 @@ def render_route_analyzer():
             rs = st.session_state.get("last_risks")
 
             if r and rs:
-                if st.button("Explain with AI"):
+                if st.button("Explain with AI", key="explain_route"):
                     prompt = f"""
 Route: {r["origin"]} → {r["dest"]} via {r["mode"].upper()}
 Scores: Geo={rs['geopolitical']}, Climate={rs['climate']},
@@ -768,7 +768,7 @@ def render_scenario_lab():
             })
             st.dataframe(df, hide_index=True, use_container_width=True)
 
-            if st.button("Explain with AI"):
+            if st.button("Explain with AI", key="explain_scenario"):
                 prompt = f"Base={rs}\nStressed={stressed}\nExplain scenario."
                 st.markdown(ai_call("You explain scenarios.", prompt))
         else:
@@ -868,7 +868,7 @@ def render_network_optimizer():
             ])
             st.dataframe(df, hide_index=True, use_container_width=True)
 
-            if st.button("Recommend with AI"):
+            if st.button("Recommend with AI", key="recommend_optimizer"):
                 prompt = f"Base={r}, Risks={rs}\nOptions={opts}\nAdvise best choice."
                 st.markdown(ai_call("You optimize networks.", prompt))
 
