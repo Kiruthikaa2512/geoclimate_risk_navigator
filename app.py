@@ -90,7 +90,10 @@ def generate_mock_response(system_prompt: str, user_prompt: str) -> str:
         return lines
 
     # ---- 1) EXPLAIN ROUTE (used by Route Analyzer 'Explain with AI') ----
-    if "route:" in lower and "scores:" in lower and route and risks:
+    if (
+    ("route:" in user_prompt.lower() and "scores:" in user_prompt.lower())
+    and route and risks
+    ):
         lines = []
         lines.append(
             f"**🌍 Lane Intelligence: {route['origin']} → {route['dest']} ({route['mode'].upper()})**"
