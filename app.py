@@ -575,6 +575,18 @@ div[data-testid="stMetricValue"]{font-size:1.10rem!important; white-space:nowrap
     font-weight:600;
     white-space:nowrap;
 }
+/* FIX DROPDOWN CLIPPING + OVERLAP */
+div[data-testid="stSelectbox"] {
+    overflow: visible !important;
+}
+
+div[data-baseweb="select"] {
+    z-index: 9999 !important;
+}
+
+.stApp, .block-container, .main {
+    overflow: visible !important;
+}
 
 </style>
 """, unsafe_allow_html=True)
