@@ -156,9 +156,19 @@ def generate_mock_response(system_prompt: str, user_prompt: str) -> str:
     # =========================================================
     countries_mentioned = detect_countries(user_prompt)
     origin = dest = None
+
+    # If user explicitly writes two countries → use them
     if len(countries_mentioned) >= 2:
         origin, dest = countries_mentioned[0], countries_mentioned[1]
-    elif route:
+
+    # Only fall back to last_route if the question refers to THAT route
+    elif route and (
+        "this route" in lower or
+        "last route" in lower or
+        "this lane" in lower or
+        "last lane" in lower or
+        "corridor" in lower
+    ):
         origin, dest = route["origin"], route["dest"]
 
     safe_words = ["safe", "safest", "lower risk", "least risk", "secure"]
@@ -171,17 +181,18 @@ def generate_mock_response(system_prompt: str, user_prompt: str) -> str:
     if is_safety_question and origin and dest:
         today = date.today()
         mode_results = []
+
         for m in ["sea", "air", "road", "rail"]:
             r_model = compute_route_risk(origin, dest, m, today, "Balanced", True)
             mode_results.append((m, r_model["overall"], r_model))
 
-        mode_results.sort(key=lambda x: x[1])  # lower = safer
+        mode_results.sort(key=lambda x: x[1])  # safest = lowest score
         best_mode, best_score, best_risks = mode_results[0]
 
         lines = []
-        lines.append(f"**🧭 Safety-Focused Mode Comparison: {origin} → {dest}**")
-        lines.append("")
+        lines.append(f"**🧭 Safety-Focused Mode Comparison: {origin} → {dest}**\n")
         lines.append("**Mode ranking (lower score = safer):**")
+
         for m, score, r_model in mode_results:
             lines.append(
                 f"- **{m.upper()}** → overall risk **{score}/100** "
@@ -197,26 +208,26 @@ def generate_mock_response(system_prompt: str, user_prompt: str) -> str:
 
         reason = []
         if best_mode == "air":
-            reason.append("avoids the most volatile maritime chokepoints and port queues")
-            reason.append("reduces exposure to multi-week ocean storms and congestion")
-            reason.append("offers tighter transit-time control for critical cargo")
+            reason.append("avoids maritime chokepoints and port queues")
+            reason.append("reduces exposure to storms and congestion")
+            reason.append("offers tighter transit-time control")
         elif best_mode == "sea":
-            reason.append("is cost-efficient for large volumes, enabling diversified routings")
-            reason.append("can be shifted across different ports and carriers when disruption hits")
+            reason.append("most cost-efficient for large volumes")
+            reason.append("can shift ports/carriers during disruption")
         elif best_mode == "road":
-            reason.append("works best for regional corridors with flexible rerouting options")
+            reason.append("flexible rerouting for regional flows")
         elif best_mode == "rail":
-            reason.append("benefits from relatively stable timetables and lower weather sensitivity")
+            reason.append("stable schedules with lower weather sensitivity")
 
         if reason:
-            lines.append("**Why this mode wins for safety:**")
-            lines.extend([f"- {r_txt}" for r_txt in reason])
+            lines.append("\n**Why this mode wins for safety:**")
+            for r_txt in reason:
+                lines.append(f"- {r_txt}")
 
-        lines.append("")
-        lines.append("**Practical playbook:**")
-        lines.append("- Use the safest mode for high-value or time-critical flows.")
-        lines.append("- Keep a secondary mode contracted as a contingency option.")
-        lines.append("- Align insurance, SLAs and monitoring with the chosen risk profile.")
+        lines.append("\n**Practical playbook:**")
+        lines.append("- Use the safest mode for high-value or critical flows.")
+        lines.append("- Keep a secondary mode as contingency.")
+        lines.append("- Align SLAs, insurance and monitoring with risk.")
 
         if context_block:
             lines.append(context_block)
