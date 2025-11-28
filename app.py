@@ -612,6 +612,26 @@ ul[role="listbox"] {
 .css-1d391kg, .css-12w0qpk {
     overflow: visible !important;
 }
+/* FIX 1: Keep hero + card from blocking dropdowns */
+.gc-card, .gc-hero, .gc-hero-inner {
+    position: relative !important;
+    z-index: 1 !important;
+    overflow: visible !important;
+}
+
+/* FIX 2: Force dropdown menu ABOVE EVERYTHING */
+div[role="listbox"],
+ul[role="listbox"],
+div[data-baseweb="menu"] {
+    position: relative !important;
+    z-index: 999999999 !important;
+    overflow: visible !important;
+}
+
+/* FIX 3: Selectbox container must allow overflow */
+[data-testid="stSelectbox"] {
+    overflow: visible !important;
+}
 
 </style>
 """, unsafe_allow_html=True)
