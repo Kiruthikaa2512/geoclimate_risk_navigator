@@ -991,26 +991,32 @@ def render_hero():
 
 from contextlib import contextmanager
 
-
 @contextmanager
 def card(title=None):
-    # Create a real Streamlit container
+    # Native Streamlit container (safe for selectboxes)
     container = st.container()
+
     with container:
-        # Inject your styled card DIV
-        st.markdown("<div class='gc-card'>", unsafe_allow_html=True)
+        # Wrap card style using a div INSIDE the container, 
+        # not as the container itself
+        st.markdown(
+            "<div class='gc-card' style='overflow:visible;'>",
+            unsafe_allow_html=True
+        )
 
-        # Render the title if provided
         if title:
-            st.markdown(f"<p class='tiny-label'>{title}</p>", unsafe_allow_html=True)
+            st.markdown(
+                f"<p class='tiny-label'>{title}</p>",
+                unsafe_allow_html=True
+            )
 
-        # Create another internal container for widgets
-        inner = st.container()
-        with inner:
-            yield  # ALL widgets live here (safe)
+        # Use only Streamlit containers for interactive widgets
+        widget_area = st.container()
+        with widget_area:
+            yield
 
-        # Close the HTML DIV
         st.markdown("</div>", unsafe_allow_html=True)
+
 
 
 # ============================================================
