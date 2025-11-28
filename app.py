@@ -523,15 +523,134 @@ st.set_page_config(
 # THEME + FIXES (FINAL WORKING YELLOW BACKGROUND)
 # ============================================================
 st.markdown("""
-/* EMERGENCY FIX - Force dropdowns above everything */
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Sora:wght@600;700&display=swap');
+
+/* LIGHT LEMON BACKGROUND */
+html, body, .stApp,
+[data-testid="stAppViewContainer"],
+[data-testid="stAppViewBlockContainer"],
+.main, .block-container {
+    background: linear-gradient(180deg, #FFFDF2 0%, #FFFBEA 40%, #FFF79A 100%) !important;
+    background-color: #FFF9E6 !important;
+}
+
+/* CARD STYLING */
+.gc-card {
+    background: #fff;
+    border-radius: 14px;
+    border: 1px solid rgba(180,190,180,0.9);
+    padding: 1rem 1.2rem;
+    margin-bottom: .4rem;
+    box-shadow: 0 12px 26px rgba(31,41,35,.12);
+    position: relative;
+    z-index: 1;
+}
+
+/* Fix blank bars */
+.block-container > div:empty {
+    display: none !important;
+}
+
+/* Metrics styling */
+div[data-testid="stMetric"]{
+    padding:.6rem .8rem!important;
+    background:#FFF!important;
+    border-radius:12px!important;
+    border:1px solid rgba(203,213,205,.95)!important;
+    box-shadow:0 8px 18px rgba(148,163,154,.35)!important;
+}
+
+div[data-testid="stMetricLabel"]{font-size:.80rem!important; white-space:nowrap;}
+div[data-testid="stMetricValue"]{font-size:1.10rem!important; white-space:nowrap;}
+
+.gc-pill{
+    display:inline-block;
+    padding: .35rem 1.1rem;
+    border-radius:999px;
+    background:#FFF3E0;
+    border:1px solid #F4A261;
+    color:#9A3412;
+    font-size:.78rem;
+    letter-spacing:.14em;
+    font-weight:600;
+    white-space:nowrap;
+}
+
+/* DROPDOWN FIXES - CRITICAL */
+/* Remove all clipping from parent containers */
+.stApp, .main, .block-container, .gc-card {
+    overflow: visible !important;
+}
+
+/* Selectbox container fixes */
+[data-testid="stSelectbox"] {
+    position: relative;
+    z-index: 100;
+    overflow: visible !important;
+}
+
+/* BaseWeb dropdown container */
+div[data-baseweb="select"] {
+    position: relative;
+    z-index: 1000 !important;
+}
+
+/* Dropdown menu - force above everything */
 div[data-baseweb="popover"] {
-    z-index: 9999999 !important;
     position: fixed !important;
-    transform: none !important;
+    z-index: 9999 !important;
 }
 
 div[role="listbox"] {
-    z-index: 9999999 !important;
+    z-index: 9999 !important;
+    position: relative !important;
+}
+
+/* Ensure the dropdown panel can extend outside cards */
+[data-baseweb="menu"] {
+    z-index: 9999 !important;
+    position: relative !important;
+}
+
+/* Fix for any remaining clipping */
+section.main .block-container {
+    overflow: visible !important;
+}
+
+div.stSelectbox > div > div {
+    overflow: visible !important;
+}
+
+/* Hero styling */
+.gc-hero {
+    position: relative;
+    z-index: 1;
+}
+
+/* Risk badges */
+.risk-low { color: #059669; background: #D1FAE5; padding: 0.2rem 0.6rem; border-radius: 8px; }
+.risk-mod { color: #D97706; background: #FEF3C7; padding: 0.2rem 0.6rem; border-radius: 8px; }
+.risk-high { color: #DC2626; background: #FEE2E2; padding: 0.2rem 0.6rem; border-radius: 8px; }
+
+.tiny-label {
+    font-size: 0.75rem;
+    color: #6B7280;
+    margin-bottom: 0.5rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-weight: 600;
+}
+
+.ai-badge {
+    display: inline-block;
+    background: #4F46E5;
+    color: white;
+    padding: 0.3rem 0.8rem;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
 }
 </style>
 
