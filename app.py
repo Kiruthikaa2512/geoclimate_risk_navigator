@@ -1,6 +1,6 @@
 # ===============================
 # GeoClimate AI Command Center
-# FULL FIXED SCRIPT — OPENAI FIXED FOR sk-proj KEYS
+# FULL FIXED SCRIPT — MOCK AI, NO EXTERNAL KEYS
 # ===============================
 
 import os
@@ -8,6 +8,7 @@ import random
 from datetime import date
 from io import BytesIO
 from typing import Optional, Dict, Any, List
+
 import numpy as np
 import pandas as pd
 import plotly.express as px
@@ -17,19 +18,17 @@ import requests
 
 
 # ============================================
-# UNIVERSAL OPENAI CLIENT — FIXED FOR sk-proj
+# FREE / MOCK AI LAYER
 # ============================================
-
-# ============================================
-# FREE AI PROVIDERS - NO API KEYS NEEDED
-# ============================================
-
 
 def ai_call(system_prompt: str, user_prompt: str, temperature: float = 0.4):
     """
-    Free AI using smart mock responses - no API keys required
+    Free AI using smart mock responses - no API keys required.
+    We ignore the system_prompt and temperature in this mock, but keep
+    the signature compatible with a real LLM call.
     """
     return generate_mock_response(system_prompt, user_prompt)
+
 
 def generate_mock_response(system_prompt: str, user_prompt: str) -> str:
     """
@@ -39,15 +38,16 @@ def generate_mock_response(system_prompt: str, user_prompt: str) -> str:
     - No external API calls
     """
     lower = user_prompt.lower()
+
     # -------------------------------
-    # Extract context
+    # Extract context from session
     # -------------------------------
     route = st.session_state.get("last_route")
     risks = st.session_state.get("last_risks")
     scenario = st.session_state.get("scenario")
     options = st.session_state.get("optimizer_options")
 
-    # Build context block (safe)
+    # Build context block (used only in the final text, not for routing logic)
     context_block = ""
     if route and risks:
         context_block += (
@@ -61,7 +61,7 @@ def generate_mock_response(system_prompt: str, user_prompt: str) -> str:
         context_block += f"\n\n**Network options configured:** {len(options)} alternatives."
 
     # -------------------------------
-    # Helper: detect countries
+    # Helper: detect countries in text
     # -------------------------------
     def detect_countries(text: str):
         t = text.lower()
@@ -69,89 +69,13 @@ def generate_mock_response(system_prompt: str, user_prompt: str) -> str:
         for c in COUNTRY_LIST:
             if c.lower() in t:
                 found.append(c)
-        return list(dict.fromkeys(found))   # unique, ordered
+        # unique, preserving order
+        return list(dict.fromkeys(found))
 
-    # =========================================================
-    # (1) SAFEST MODE BETWEEN TWO COUNTRIES
-    # =========================================================
-
-    countries_mentioned = detect_countries(user_prompt)
-    origin = dest = None
-
-    # If user mentions two countries → use them
-    if len(countries_mentioned) >= 2:
-        origin, dest = countries_mentioned[0], countries_mentioned[1]
-
-    safe_words = ["safe", "safest", "lower risk", "least risk", "secure"]
-    mode_words = ["mode", "air", "sea", "ocean", "ship", "road", "truck", "rail", "freight"]
-
-    is_safety_question = (
-        any(w in lower for w in safe_words)
-        and any(w in lower for w in mode_words)
-        and origin is not None
-        and dest is not None
-    )
-
-    if is_safety_question:
-        today = date.today()
-        mode_results = []
-
-        for m in ["sea", "air", "road", "rail"]:
-            r_model = compute_route_risk(origin, dest, m, today, "Balanced", True)
-            mode_results.append((m, r_model["overall"], r_model))
-
-        mode_results.sort(key=lambda x: x[1])
-        best_mode, best_score, best_risks = mode_results[0]
-
-        out = []
-        out.append(f"**🧭 Safety-Focused Mode Comparison: {origin} → {dest}**\n")
-        out.append("**Mode ranking (lower score = safer):**")
-
-        for m, score, r_model in mode_results:
-            out.append(
-                f"- **{m.upper()}** → overall risk **{score}/100** "
-                f"(Geo {r_model['geopolitical']}, Climate {r_model['climate']}, "
-                f"Logistics {r_model['logistics']}, Cyber {r_model['cyber']})"
-            )
-
-        out.append("")
-        out.append(
-            f"**Recommended primary mode for safety:** **{best_mode.upper()}** "
-            f"with modeled risk **{best_score}/100**."
-        )
-
-        return "\n".join(out)
-
-
-    # ---- Pull context from the app ----
-    route = st.session_state.get("last_route")
-    risks = st.session_state.get("last_risks")
-    scenario = st.session_state.get("scenario")
-    options = st.session_state.get("optimizer_options")
-
-    context_block = ""
-    if route and risks:
-        context_block += (
-            f"\n\n**Current lane in tool:** "
-            f"{route['origin']} → {route['dest']} via {route['mode'].upper()} "
-            f"(overall risk {risks['overall']}/100)"
-        )
-    if scenario:
-        context_block += "\n\n**Scenario context:** " + str(scenario)
-    if options:
-        context_block += f"\n\n**Network options configured:** {len(options)} alternatives."
-
-    # ---- Helpers ----
-    def detect_countries(text: str):
-        t = text.lower()
-        hits = []
-        for c in COUNTRY_LIST:
-            if c.lower() in t:
-                hits.append(c)
-        # preserve order, unique
-        return list(dict.fromkeys(hits))
-
-    def describe_dominant_risks(r: dict) -> list[str]:
+    # -------------------------------
+    # Helper: describe top risk drivers
+    # -------------------------------
+    def describe_dominant_risks(r: dict) -> List[str]:
         dims = [
             ("Geopolitics", r["geopolitical"]),
             ("Climate", r["climate"]),
@@ -172,9 +96,29 @@ def generate_mock_response(system_prompt: str, user_prompt: str) -> str:
             lines.append(f"- **{name} ({val}/100)** — driven by {driver}.")
         return lines
 
+    # -------------------------------
+    # Extract origin / destination (countries) from the question
+    # -------------------------------
+    countries_mentioned = detect_countries(user_prompt)
+    origin = dest = None
+
+    # Prefer explicit countries in the question
+    if len(countries_mentioned) >= 2:
+        origin, dest = countries_mentioned[0], countries_mentioned[1]
+    # Else, optionally fall back to last_route if user clearly refers to "this route/lane"
+    elif route and (
+        "this route" in lower
+        or "last route" in lower
+        or "this lane" in lower
+        or "last lane" in lower
+        or "corridor" in lower
+    ):
+        origin, dest = route["origin"], route["dest"]
+
     # =========================================================
     # 1) EXPLAIN ROUTE (used by Route Analyzer 'Explain with AI')
     # =========================================================
+    # Triggered ONLY by the special prompt from the Route Analyzer
     if ("route:" in lower and "scores:" in lower) and route and risks:
         lines = []
         lines.append(
@@ -234,27 +178,9 @@ def generate_mock_response(system_prompt: str, user_prompt: str) -> str:
 
         return "\n".join(lines)
 
-
     # =========================================================
-    # 2) SAFEST MODE BETWEEN TWO COUNTRIES (e.g. India ↔ USA)
+    # 2) SAFEST MODE BETWEEN TWO COUNTRIES (explicit safety wording)
     # =========================================================
-    countries_mentioned = detect_countries(user_prompt)
-    origin = dest = None
-
-    # If user explicitly writes two countries → use them
-    if len(countries_mentioned) >= 2:
-        origin, dest = countries_mentioned[0], countries_mentioned[1]
-
-    # Only fall back to last_route if the question refers to THAT route
-    elif route and (
-        "this route" in lower or
-        "last route" in lower or
-        "this lane" in lower or
-        "last lane" in lower or
-        "corridor" in lower
-    ):
-        origin, dest = route["origin"], route["dest"]
-
     safe_words = ["safe", "safest", "lower risk", "least risk", "secure"]
     mode_words = ["mode", "air", "sea", "ocean", "ship", "road", "truck", "rail", "freight"]
 
@@ -423,9 +349,13 @@ def generate_mock_response(system_prompt: str, user_prompt: str) -> str:
         return "\n".join(lines)
 
     # =========================================================
-    # 6) UNIVERSAL LOGIC: safest / cheapest route between countries
+    # 6) UNIVERSAL LOGIC: safest / cheapest / best route between countries
     # =========================================================
-    if any(word in lower for word in ["safest", "cheap", "cheapest", "best route", "optimal route"]) and origin and dest:
+    if (
+        any(word in lower for word in ["safest", "cheap", "cheapest", "best route", "optimal route"])
+        and origin
+        and dest
+    ):
         today = date.today()
         modes = ["sea", "air", "road", "rail"]
 
@@ -464,8 +394,17 @@ def generate_mock_response(system_prompt: str, user_prompt: str) -> str:
     # 7) GENERAL NON-DOMAIN QUESTIONS (sports, trivia, etc.)
     # =========================================================
     non_domain_keywords = [
-        "world cup", "cricket", "football", "soccer", "who won",
-        "nba", "movie", "actor", "singer", "music", "president",
+        "world cup",
+        "cricket",
+        "football",
+        "soccer",
+        "who won",
+        "nba",
+        "movie",
+        "actor",
+        "singer",
+        "music",
+        "president",
     ]
 
     if any(k in lower for k in non_domain_keywords):
@@ -498,7 +437,14 @@ def generate_mock_response(system_prompt: str, user_prompt: str) -> str:
             lines.append(
                 "- You are balancing service, cost and risk across a multi-country supply network."
             )
-        if route and risks:
+        # Only mention the current lane if the question clearly references a route/lane
+        if route and risks and (
+            "this route" in lower
+            or "last route" in lower
+            or "this lane" in lower
+            or "last lane" in lower
+            or "current lane" in lower
+        ):
             lines.append(
                 f"- Current lane in focus: **{route['origin']} → {route['dest']} "
                 f"({route['mode'].upper()})**, overall risk **{risks['overall']}/100**."
@@ -517,7 +463,9 @@ def generate_mock_response(system_prompt: str, user_prompt: str) -> str:
         lines.append("")
         lines.append("**3. Medium-term moves (3–12 months)**")
         lines.append("- Stand up a **lane risk dashboard** with monthly geo/climate/logistics signals.")
-        lines.append("- Build a **playbook library** for disruptions (port closure, strike, corridor conflict).")
+        lines.append(
+            "- Build a **playbook library** for disruptions (port closure, strike, corridor conflict)."
+        )
         lines.append("- Pilot **multi-sourcing** and **multi-hub** strategies for key SKUs.")
         lines.append("- Introduce **predictive ETA and capacity monitoring** for high-risk lanes.")
 
@@ -558,6 +506,7 @@ Use the Route Analyzer, Scenario Lab and Network Optimizer together to turn this
 adaptive supply chain design rather than a one-off study.
 """
 
+
 # ============================================================
 # PAGE CONFIG
 # ============================================================
@@ -570,7 +519,8 @@ st.set_page_config(
 # ============================================================
 # THEME + FIXES
 # ============================================================
-st.markdown("""
+st.markdown(
+    """
 <style>
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Sora:wght@600;700&display=swap');
@@ -630,7 +580,9 @@ div[data-testid="stMetricValue"]{font-size:1.10rem!important; white-space:nowrap
 }
 
 </style>
-""", unsafe_allow_html=True)
+""",
+    unsafe_allow_html=True,
+)
 
 # ============================================================
 # CONSTANTS
@@ -646,40 +598,92 @@ COLORWAY = [PRIMARY_SOFT, ACCENT, "#66BFBF", "#F4A261", "#2E7D32"]
 # ============================================================
 
 GEO_RISK = {
-    "default": 35, "Ukraine": 90, "Russia": 85, "Israel": 80, "Gaza Strip": 92,
-    "China": 60, "Taiwan": 70, "USA": 30, "Germany": 25,
-    "UK": 25, "India": 40, "Brazil": 45, "South Africa": 40,
-    "Australia": 35, "Bangladesh": 60, "Philippines": 60, "Pakistan": 55,
-    "Singapore": 20, "Netherlands": 22, "Mexico": 45, "Canada": 20,
-    "Japan": 25, "South Korea": 30,
+    "default": 35,
+    "Ukraine": 90,
+    "Russia": 85,
+    "Israel": 80,
+    "Gaza Strip": 92,
+    "China": 60,
+    "Taiwan": 70,
+    "USA": 30,
+    "Germany": 25,
+    "UK": 25,
+    "India": 40,
+    "Brazil": 45,
+    "South Africa": 40,
+    "Australia": 35,
+    "Bangladesh": 60,
+    "Philippines": 60,
+    "Pakistan": 55,
+    "Singapore": 20,
+    "Netherlands": 22,
+    "Mexico": 45,
+    "Canada": 20,
+    "Japan": 25,
+    "South Korea": 30,
 }
 
 CLIMATE_RISK = {
-    "default": 40, "Bangladesh": 85, "Philippines": 80, "Pakistan": 75,
-    "USA": 45, "India": 65, "Australia": 55, "Brazil": 50,
-    "China": 45, "Japan": 40, "Mexico": 50,
+    "default": 40,
+    "Bangladesh": 85,
+    "Philippines": 80,
+    "Pakistan": 75,
+    "USA": 45,
+    "India": 65,
+    "Australia": 55,
+    "Brazil": 50,
+    "China": 45,
+    "Japan": 40,
+    "Mexico": 50,
 }
 
 LOGISTICS_RISK = {
-    "default": 35, "USA": 50, "China": 55, "Singapore": 40,
-    "Netherlands": 45, "Germany": 40, "UK": 45,
-    "India": 50, "Brazil": 48, "South Africa": 50, "Mexico": 52,
+    "default": 35,
+    "USA": 50,
+    "China": 55,
+    "Singapore": 40,
+    "Netherlands": 45,
+    "Germany": 40,
+    "UK": 45,
+    "India": 50,
+    "Brazil": 48,
+    "South Africa": 50,
+    "Mexico": 52,
 }
 
 CYBER_RISK = {
-    "default": 40, "USA": 55, "European Union": 50, "China": 60,
-    "India": 45, "Japan": 50, "Brazil": 42, "UK": 48,
+    "default": 40,
+    "USA": 55,
+    "European Union": 50,
+    "China": 60,
+    "India": 45,
+    "Japan": 50,
+    "Brazil": 42,
+    "UK": 48,
 }
 
 COUNTRY_COORDS = {
-    "USA": (37, -95), "China": (35, 103), "India": (21, 78), "Germany": (51, 10),
-    "UK": (55, -3), "Brazil": (-10, -55), "South Africa": (-30, 25),
-    "Australia": (-25, 133), "Bangladesh": (24, 90), "Philippines": (13, 122),
-    "Pakistan": (30, 70), "Russia": (60, 90), "Ukraine": (49, 32),
-    "Singapore": (1.3, 103.8), "Netherlands": (52.1, 5.3),
-    "Israel": (31, 35), "Gaza Strip": (31.4, 34.3),
-    "Mexico": (23, -102), "Canada": (56, -106),
-    "Japan": (36.2, 138.2), "South Korea": (36.5, 127.8),
+    "USA": (37, -95),
+    "China": (35, 103),
+    "India": (21, 78),
+    "Germany": (51, 10),
+    "UK": (55, -3),
+    "Brazil": (-10, -55),
+    "South Africa": (-30, 25),
+    "Australia": (-25, 133),
+    "Bangladesh": (24, 90),
+    "Philippines": (13, 122),
+    "Pakistan": (30, 70),
+    "Russia": (60, 90),
+    "Ukraine": (49, 32),
+    "Singapore": (1.3, 103.8),
+    "Netherlands": (52.1, 5.3),
+    "Israel": (31, 35),
+    "Gaza Strip": (31.4, 34.3),
+    "Mexico": (23, -102),
+    "Canada": (56, -106),
+    "Japan": (36.2, 138.2),
+    "South Korea": (36.5, 127.8),
 }
 
 COUNTRY_LIST = sorted(COUNTRY_COORDS.keys())
@@ -696,25 +700,33 @@ CONFLICT_CORRIDORS = [
 # ============================================================
 
 def risk_level(s):
-    if s < 25: return "Low"
-    if s < 50: return "Moderate"
-    if s < 75: return "High"
+    if s < 25:
+        return "Low"
+    if s < 50:
+        return "Moderate"
+    if s < 75:
+        return "High"
     return "Critical"
+
 
 def risk_badge_class(s):
     lvl = risk_level(s)
-    if lvl == "Low": return "risk-low"
-    if lvl == "Moderate": return "risk-mod"
+    if lvl == "Low":
+        return "risk-low"
+    if lvl == "Moderate":
+        return "risk-mod"
     return "risk-high"
+
 
 def get_score(table, c):
     return table.get(c, table["default"])
 
+
 def risk_color(score):
     score_norm = np.clip(score, 0, 100) / 100
-    g = np.array([46,125,50])
-    y = np.array([217,119,6])
-    r = np.array([185,28,28])
+    g = np.array([46, 125, 50])
+    y = np.array([217, 119, 6])
+    r = np.array([185, 28, 28])
 
     if score_norm < 0.5:
         t = score_norm * 2
@@ -729,9 +741,16 @@ def risk_color(score):
 # RISK COMPUTATION
 # ============================================================
 
-def compute_route_risk(origin, dest, mode, dep_date, weighting, include_conflict,
-                       cargo_value=0.0, time_critical=False):
-
+def compute_route_risk(
+    origin,
+    dest,
+    mode,
+    dep_date,
+    weighting,
+    include_conflict,
+    cargo_value: float = 0.0,
+    time_critical: bool = False,
+):
     if isinstance(dep_date, str):
         dep_date = date.fromisoformat(dep_date)
 
@@ -748,34 +767,35 @@ def compute_route_risk(origin, dest, mode, dep_date, weighting, include_conflict
     elif mode == "road":
         l *= 1.1
 
-    if dep_date.month in (6,7,8,9):
+    if dep_date.month in (6, 7, 8, 9):
         c *= 1.15
 
     conflict_bump = 0
-    if include_conflict and origin in {"Ukraine","Russia","Israel","Gaza Strip","Taiwan"}:
+    if include_conflict and origin in {"Ukraine", "Russia", "Israel", "Gaza Strip", "Taiwan"}:
         conflict_bump = 10
         g *= 1.1
 
     if weighting == "Geo-heavy":
-        w = [0.45,0.25,0.2,0.1]
+        w = [0.45, 0.25, 0.2, 0.1]
     elif weighting == "Climate-heavy":
-        w = [0.25,0.45,0.2,0.1]
+        w = [0.25, 0.45, 0.2, 0.1]
     elif weighting == "Logistics-heavy":
-        w = [0.25,0.2,0.45,0.1]
+        w = [0.25, 0.2, 0.45, 0.1]
     else:
-        w = [0.35,0.3,0.25,0.1]
+        w = [0.35, 0.3, 0.25, 0.1]
 
-    overall = g*w[0] + c*w[1] + l*w[2] + cb*w[3] + conflict_bump
-    overall = float(np.clip(round(overall,1), 0, 100))
+    overall = g * w[0] + c * w[1] + l * w[2] + cb * w[3] + conflict_bump
+    overall = float(np.clip(round(overall, 1), 0, 100))
 
     return {
-        "geopolitical": round(g,1),
-        "climate": round(c,1),
-        "logistics": round(l,1),
-        "cyber": round(cb,1),
+        "geopolitical": round(g, 1),
+        "climate": round(c, 1),
+        "logistics": round(l, 1),
+        "cyber": round(cb, 1),
         "overall": overall,
         "conflict_bump": conflict_bump,
     }
+
 
 # ============================================================
 # VISUALS
@@ -791,43 +811,62 @@ def style_fig(fig):
     )
     return fig
 
+
 def build_route_map(origin, dest, overall, show_conflict):
     lat_o, lon_o = COUNTRY_COORDS[origin]
     lat_d, lon_d = COUNTRY_COORDS[dest]
 
     fig = go.Figure()
-    fig.add_trace(go.Scattergeo(
-        lon=[lon_o, lon_d], lat=[lat_o, lat_d],
-        mode="lines", line=dict(width=4, color=risk_color(overall))
-    ))
-    fig.add_trace(go.Scattergeo(
-        lon=[lon_o], lat=[lat_o],
-        mode="markers+text", text=[origin], textposition="top center",
-        marker=dict(size=11, color="#66BFBF")
-    ))
-    fig.add_trace(go.Scattergeo(
-        lon=[lon_d], lat=[lat_d],
-        mode="markers+text", text=[dest], textposition="bottom center",
-        marker=dict(size=11, color="#B91C1C")
-    ))
+    fig.add_trace(
+        go.Scattergeo(
+            lon=[lon_o, lon_d],
+            lat=[lat_o, lat_d],
+            mode="lines",
+            line=dict(width=4, color=risk_color(overall)),
+        )
+    )
+    fig.add_trace(
+        go.Scattergeo(
+            lon=[lon_o],
+            lat=[lat_o],
+            mode="markers+text",
+            text=[origin],
+            textposition="top center",
+            marker=dict(size=11, color="#66BFBF"),
+        )
+    )
+    fig.add_trace(
+        go.Scattergeo(
+            lon=[lon_d],
+            lat=[lat_d],
+            mode="markers+text",
+            text=[dest],
+            textposition="bottom center",
+            marker=dict(size=11, color="#B91C1C"),
+        )
+    )
 
     if show_conflict:
-        fig.add_trace(go.Scattergeo(
-            lon=[c["lon"] for c in CONFLICT_CORRIDORS],
-            lat=[c["lat"] for c in CONFLICT_CORRIDORS],
-            mode="markers+text",
-            text=[c["name"] for c in CONFLICT_CORRIDORS],
-            marker=dict(color="red", symbol="triangle-up")
-        ))
+        fig.add_trace(
+            go.Scattergeo(
+                lon=[c["lon"] for c in CONFLICT_CORRIDORS],
+                lat=[c["lat"] for c in CONFLICT_CORRIDORS],
+                mode="markers+text",
+                text=[c["name"] for c in CONFLICT_CORRIDORS],
+                marker=dict(color="red", symbol="triangle-up"),
+            )
+        )
 
     fig.update_layout(
         geo=dict(
             projection_type="natural earth",
-            showland=True, landcolor="#F4F5F7",
-            showcountries=True, countrycolor="#999"
+            showland=True,
+            landcolor="#F4F5F7",
+            showcountries=True,
+            countrycolor="#999",
         ),
-        margin=dict(l=0,r=0,t=0,b=0),
-        height=420
+        margin=dict(l=0, r=0, t=0, b=0),
+        height=420,
     )
     return style_fig(fig)
 
@@ -837,43 +876,47 @@ def build_risk_radar(r):
     labels = ["Geopolitics", "Climate", "Logistics", "Cyber"]
     values = [r["geopolitical"], r["climate"], r["logistics"], r["cyber"]]
 
-    fig.add_trace(go.Scatterpolar(
-        r=values+[values[0]],
-        theta=labels+[labels[0]],
-        fill="toself",
-        line=dict(color=PRIMARY_SOFT)
-    ))
-    fig.update_layout(
-        showlegend=False,
-        margin=dict(l=30,r=30,t=20,b=20),
-        height=360
+    fig.add_trace(
+        go.Scatterpolar(
+            r=values + [values[0]],
+            theta=labels + [labels[0]],
+            fill="toself",
+            line=dict(color=PRIMARY_SOFT),
+        )
     )
+    fig.update_layout(showlegend=False, margin=dict(l=30, r=30, t=20, b=20), height=360)
     return style_fig(fig)
 
 
 def build_heatmap():
     rows = []
     for c in GEO_RISK:
-        if c == "default": continue
+        if c == "default":
+            continue
         g = get_score(GEO_RISK, c)
         cl = get_score(CLIMATE_RISK, c)
-        rows.append({"country": c, "risk": g*0.6 + cl*0.4})
+        rows.append({"country": c, "risk": g * 0.6 + cl * 0.4})
     df = pd.DataFrame(rows)
 
     fig = px.choropleth(
-        df, locations="country", locationmode="country names",
-        color="risk", range_color=(0,100),
-        color_continuous_scale=["#2E7D32","#D97706","#B91C1C"]
+        df,
+        locations="country",
+        locationmode="country names",
+        color="risk",
+        range_color=(0, 100),
+        color_continuous_scale=["#2E7D32", "#D97706", "#B91C1C"],
     )
-    fig.update_layout(height=420, margin=dict(l=0,r=0,t=20,b=0))
+    fig.update_layout(height=420, margin=dict(l=0, r=0, t=20, b=0))
     return style_fig(fig)
+
 
 # ============================================================
 # HERO
 # ============================================================
 
 def render_hero():
-    st.markdown("""
+    st.markdown(
+        """
     <div class="gc-hero gc-card">
         <div class="gc-hero-inner">
             <div class="gc-pill">GEOCLIMATE • SUPPLY CHAIN • COMMAND</div>
@@ -885,13 +928,17 @@ def render_hero():
             </p>
         </div>
     </div>
-    """, unsafe_allow_html=True)
+    """,
+        unsafe_allow_html=True,
+    )
+
 
 # ============================================================
 # CARD DECORATOR
 # ============================================================
 
 from contextlib import contextmanager
+
 
 @contextmanager
 def card(title=None):
@@ -914,31 +961,40 @@ def card(title=None):
         st.markdown("</div>", unsafe_allow_html=True)
 
 
-
-
 # ============================================================
 # ROUTE ANALYZER
 # ============================================================
 
 def render_route_analyzer():
-    col_left, col_right = st.columns([0.95,1.25])
+    col_left, col_right = st.columns([0.95, 1.25])
 
     # -------------------- LEFT SIDE --------------------
     with col_left:
         with card("Route configuration"):
-            origin = st.selectbox("Origin country", COUNTRY_LIST, index=COUNTRY_LIST.index("China"))
-            dest = st.selectbox("Destination country", COUNTRY_LIST, index=COUNTRY_LIST.index("USA"))
+            origin = st.selectbox(
+                "Origin country", COUNTRY_LIST, index=COUNTRY_LIST.index("China")
+            )
+            dest = st.selectbox(
+                "Destination country", COUNTRY_LIST, index=COUNTRY_LIST.index("USA")
+            )
             mode = st.selectbox("Mode", ["sea", "air", "road", "rail"])
 
             dep_date = st.date_input(
-                "Departure date", value=date.today(),
-                min_value=date(2020,1,1), max_value=date(2030,12,31)
+                "Departure date",
+                value=date.today(),
+                min_value=date(2020, 1, 1),
+                max_value=date(2030, 12, 31),
             )
 
             with st.expander("Advanced", expanded=False):
-                weighting = st.selectbox("Weighting", ["Balanced", "Geo-heavy", "Climate-heavy", "Logistics-heavy"])
+                weighting = st.selectbox(
+                    "Weighting",
+                    ["Balanced", "Geo-heavy", "Climate-heavy", "Logistics-heavy"],
+                )
                 include_conflict = st.checkbox("Include conflict corridors", True)
-                cargo_value = st.number_input("Cargo value (USD)", min_value=0.0, step=100000.0)
+                cargo_value = st.number_input(
+                    "Cargo value (USD)", min_value=0.0, step=100000.0
+                )
                 time_critical = st.checkbox("Time-critical cargo", False)
 
             add_multi = st.checkbox("Add this lane to comparison basket", False)
@@ -946,7 +1002,9 @@ def render_route_analyzer():
             run = st.button("Run analysis", type="primary")
 
         if run:
-            risks = compute_route_risk(origin, dest, mode, dep_date, weighting, include_conflict)
+            risks = compute_route_risk(
+                origin, dest, mode, dep_date, weighting, include_conflict
+            )
 
             st.session_state["last_route"] = {
                 "origin": origin,
@@ -954,7 +1012,7 @@ def render_route_analyzer():
                 "mode": mode,
                 "date": dep_date.isoformat(),
                 "weighting": weighting,
-                "conflict": include_conflict
+                "conflict": include_conflict,
             }
             st.session_state["last_risks"] = risks
 
@@ -980,7 +1038,7 @@ def render_route_analyzer():
                     f"<p>Overall risk: "
                     f"<span class='risk-badge {risk_badge_class(rs['overall'])}'>"
                     f"{lvl} ({rs['overall']})</span></p>",
-                    unsafe_allow_html=True
+                    unsafe_allow_html=True,
                 )
 
                 colx, coly = st.columns(2)
@@ -1018,15 +1076,20 @@ Explain top drivers and mitigations.
             with tab1:
                 if r:
                     st.plotly_chart(
-                        build_route_map(r["origin"], r["dest"], rs["overall"], r["conflict"]),
-                        use_container_width=True
+                        build_route_map(
+                            r["origin"], r["dest"], rs["overall"], r["conflict"]
+                        ),
+                        use_container_width=True,
                     )
                 else:
                     st.info("Run a lane first.")
 
             with tab2:
                 if r:
-                    st.plotly_chart(build_risk_radar(rs), use_container_width=True)
+                    st.plotly_chart(
+                        build_risk_radar(rs),
+                        use_container_width=True,
+                    )
                 else:
                     st.info("Run a lane first.")
 
@@ -1035,16 +1098,19 @@ Explain top drivers and mitigations.
             if not routes:
                 st.info("Add lanes to compare.")
             else:
-                df = pd.DataFrame([
-                    {
-                        "Lane": f"{x['origin']} → {x['dest']} ({x['mode'].upper()})",
-                        "Geo": x["risks"]["geopolitical"],
-                        "Climate": x["risks"]["climate"],
-                        "Logistics": x["risks"]["logistics"],
-                        "Cyber": x["risks"]["cyber"],
-                        "Overall": x["risks"]["overall"],
-                    } for x in routes
-                ])
+                df = pd.DataFrame(
+                    [
+                        {
+                            "Lane": f"{x['origin']} → {x['dest']} ({x['mode'].upper()})",
+                            "Geo": x["risks"]["geopolitical"],
+                            "Climate": x["risks"]["climate"],
+                            "Logistics": x["risks"]["logistics"],
+                            "Cyber": x["risks"]["cyber"],
+                            "Overall": x["risks"]["overall"],
+                        }
+                        for x in routes
+                    ]
+                )
                 st.dataframe(df, hide_index=True, use_container_width=True)
 
                 if st.button("Compare with AI"):
@@ -1082,13 +1148,13 @@ def render_scenario_lab():
                 "geopolitical": round(rs["geopolitical"] * geo_m, 1),
                 "climate": round(rs["climate"] * cli_m, 1),
                 "logistics": round(rs["logistics"] * log_m, 1),
-                "cyber": round(rs["cyber"] * cyb_m, 1)
+                "cyber": round(rs["cyber"] * cyb_m, 1),
             }
             ov = (
-                stressed["geopolitical"] * 0.35 +
-                stressed["climate"] * 0.3 +
-                stressed["logistics"] * 0.25 +
-                stressed["cyber"] * 0.1
+                stressed["geopolitical"] * 0.35
+                + stressed["climate"] * 0.3
+                + stressed["logistics"] * 0.25
+                + stressed["cyber"] * 0.1
             )
             stressed["overall"] = float(np.clip(round(ov, 1), 0, 100))
 
@@ -1096,17 +1162,25 @@ def render_scenario_lab():
             st.session_state["scenario"] = stressed
 
         if stressed:
-            df = pd.DataFrame({
-                "Dimension": ["Geopolitics", "Climate", "Logistics", "Cyber", "Overall"],
-                "Base": [
-                    rs["geopolitical"], rs["climate"],
-                    rs["logistics"], rs["cyber"], rs["overall"]
-                ],
-                "Stressed": [
-                    stressed["geopolitical"], stressed["climate"],
-                    stressed["logistics"], stressed["cyber"], stressed["overall"]
-                ]
-            })
+            df = pd.DataFrame(
+                {
+                    "Dimension": ["Geopolitics", "Climate", "Logistics", "Cyber", "Overall"],
+                    "Base": [
+                        rs["geopolitical"],
+                        rs["climate"],
+                        rs["logistics"],
+                        rs["cyber"],
+                        rs["overall"],
+                    ],
+                    "Stressed": [
+                        stressed["geopolitical"],
+                        stressed["climate"],
+                        stressed["logistics"],
+                        stressed["cyber"],
+                        stressed["overall"],
+                    ],
+                }
+            )
 
             st.dataframe(df, hide_index=True, use_container_width=True)
 
@@ -1117,6 +1191,7 @@ def render_scenario_lab():
         else:
             st.info("Run a scenario above.")
 
+
 # ============================================================
 # GLOBAL HEATMAP
 # ============================================================
@@ -1126,18 +1201,27 @@ def render_global_heatmap():
         st.plotly_chart(build_heatmap(), use_container_width=True)
 
     with card("Country trend"):
-        c = st.selectbox("Country", COUNTRY_LIST, index=COUNTRY_LIST.index("China"))
+        c = st.selectbox(
+            "Country", COUNTRY_LIST, index=COUNTRY_LIST.index("China")
+        )
         months = st.slider("Months", 6, 24, 12)
         dates = pd.date_range(end=date.today(), periods=months, freq="M")
         base_g = get_score(GEO_RISK, c)
         base_c = get_score(CLIMATE_RISK, c)
-        df = pd.DataFrame({
-            "date": dates,
-            "Geopolitics": [np.clip(base_g+random.randint(-6,8),0,100) for _ in dates],
-            "Climate": [np.clip(base_c+random.randint(-4,10),0,100) for _ in dates],
-        })
-        fig = px.line(df, x="date", y=["Geopolitics","Climate"])
+        df = pd.DataFrame(
+            {
+                "date": dates,
+                "Geopolitics": [
+                    np.clip(base_g + random.randint(-6, 8), 0, 100) for _ in dates
+                ],
+                "Climate": [
+                    np.clip(base_c + random.randint(-4, 10), 0, 100) for _ in dates
+                ],
+            }
+        )
+        fig = px.line(df, x="date", y=["Geopolitics", "Climate"])
         st.plotly_chart(style_fig(fig), use_container_width=True)
+
 
 # ============================================================
 # AI STRATEGY ROOM
@@ -1160,8 +1244,16 @@ def render_ai_strategy_room():
         ctx = "\n".join(ctx_parts) if ctx_parts else "No context"
 
         if st.button("Ask"):
-            prompt = f"Context:\n{ctx}\nQuestion:\n{question}"
-            st.markdown(ai_call("You are a strategist.", prompt))
+            # IMPORTANT: send ONLY the user's question into the mock AI,
+            # so it doesn't confuse context text with a route prompt.
+            answer = ai_call("You are a strategist.", question)
+
+            # Optionally append the context at the bottom for transparency
+            if ctx != "No context":
+                answer += "\n\n---\n**Context from the dashboard (for your reference):**\n" + ctx
+
+            st.markdown(answer)
+
 
 # ============================================================
 # NETWORK OPTIMIZER
@@ -1183,37 +1275,63 @@ def render_network_optimizer():
             alt_list = []
 
             # Mode shift
-            alt_mode = "air" if r["mode"]=="sea" else "sea"
-            alt_list.append({
-                "label":"Mode shift",
-                "origin":r["origin"], "dest":r["dest"], "mode":alt_mode,
-                "risks":compute_route_risk(r["origin"],r["dest"],alt_mode,dep,r["weighting"],r["conflict"])
-            })
+            alt_mode = "air" if r["mode"] == "sea" else "sea"
+            alt_list.append(
+                {
+                    "label": "Mode shift",
+                    "origin": r["origin"],
+                    "dest": r["dest"],
+                    "mode": alt_mode,
+                    "risks": compute_route_risk(
+                        r["origin"],
+                        r["dest"],
+                        alt_mode,
+                        dep,
+                        r["weighting"],
+                        r["conflict"],
+                    ),
+                }
+            )
 
             # Region shift
-            safer = "Singapore" if r["origin"] in {"China","India"} else "Netherlands"
-            alt_list.append({
-                "label":"Region shift",
-                "origin":safer, "dest":r["dest"], "mode":r["mode"],
-                "risks":compute_route_risk(safer,r["dest"],r["mode"],dep,r["weighting"],r["conflict"])
-            })
+            safer = "Singapore" if r["origin"] in {"China", "India"} else "Netherlands"
+            alt_list.append(
+                {
+                    "label": "Region shift",
+                    "origin": safer,
+                    "dest": r["dest"],
+                    "mode": r["mode"],
+                    "risks": compute_route_risk(
+                        safer,
+                        r["dest"],
+                        r["mode"],
+                        dep,
+                        r["weighting"],
+                        r["conflict"],
+                    ),
+                }
+            )
 
             st.session_state["optimizer_options"] = alt_list
 
         opts = st.session_state.get("optimizer_options", [])
         if opts:
-            df = pd.DataFrame([
-                {
-                    "Option":x["label"],
-                    "Lane":f"{x['origin']} → {x['dest']} ({x['mode']})",
-                    "Overall":x["risks"]["overall"]
-                } for x in opts
-            ])
+            df = pd.DataFrame(
+                [
+                    {
+                        "Option": x["label"],
+                        "Lane": f"{x['origin']} → {x['dest']} ({x['mode']})",
+                        "Overall": x["risks"]["overall"],
+                    }
+                    for x in opts
+                ]
+            )
             st.dataframe(df, hide_index=True, use_container_width=True)
 
             if st.button("Recommend with AI", key="recommend_optimizer"):
                 prompt = f"Base={r}, Risks={rs}\nOptions={opts}\nAdvise best choice."
                 st.markdown(ai_call("You optimize networks.", prompt))
+
 
 # ============================================================
 # EXPORT CENTER
@@ -1237,12 +1355,13 @@ def render_export_center():
             "Geo": rs["geopolitical"],
             "Climate": rs["climate"],
             "Logistics": rs["logistics"],
-            "Cyber": rs["cyber"]
+            "Cyber": rs["cyber"],
         }
         st.json(summary)
 
-        txt = "\n".join([f"{k}: {v}" for k,v in summary.items()])
+        txt = "\n".join([f"{k}: {v}" for k, v in summary.items()])
         st.download_button("Download text", txt, "summary.txt")
+
 
 # ============================================================
 # MAIN
@@ -1250,16 +1369,29 @@ def render_export_center():
 
 def main():
     render_hero()
-    tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
-        "Route Analyzer", "Scenario Lab", "Global Heatmap",
-        "AI Strategy Room", "Network Optimizer", "Export Center"
-    ])
-    with tab1: render_route_analyzer()
-    with tab2: render_scenario_lab()
-    with tab3: render_global_heatmap()
-    with tab4: render_ai_strategy_room()
-    with tab5: render_network_optimizer()
-    with tab6: render_export_center()
+    tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(
+        [
+            "Route Analyzer",
+            "Scenario Lab",
+            "Global Heatmap",
+            "AI Strategy Room",
+            "Network Optimizer",
+            "Export Center",
+        ]
+    )
+    with tab1:
+        render_route_analyzer()
+    with tab2:
+        render_scenario_lab()
+    with tab3:
+        render_global_heatmap()
+    with tab4:
+        render_ai_strategy_room()
+    with tab5:
+        render_network_optimizer()
+    with tab6:
+        render_export_center()
+
 
 if __name__ == "__main__":
     main()
