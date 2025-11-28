@@ -535,7 +535,7 @@ st.markdown(
 
 /* Background */
 .stApp {
-    background: FFF66C;
+    background: FFF66C !important;
     font-family: "Inter";
 }
 
