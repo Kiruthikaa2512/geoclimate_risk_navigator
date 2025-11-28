@@ -532,8 +532,8 @@ html, body, .stApp,
 [data-testid="stAppViewContainer"],
 [data-testid="stAppViewBlockContainer"],
 .main, .block-container {
-    background: linear-gradient(135deg, #FFFCC2 0%, #FFF79A 100%) !important;
-    background-color: #FFF79A !important;
+    background: linear-gradient(180deg, #FFFDF2 0%, #FFFBEA 40%, #FFF79A 100%) !important;
+    background-color: #FFF9E6 !important;
 }
 
 /* CARD */
