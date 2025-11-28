@@ -519,27 +519,24 @@ st.set_page_config(
 # ============================================================
 # THEME + FIXES
 # ============================================================
-st.markdown(
-    """
+# ============================================================
+# THEME + FIXES (FINAL WORKING YELLOW BACKGROUND)
+# ============================================================
+st.markdown("""
 <style>
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Sora:wght@600;700&display=swap');
 
-:root {
-    --primary: #4CAF7B;
-    --primary-soft: #60C18C;
-    --accent-warm: #F4A261;
-    --accent-strong: #E76F51;
-    --text: #1A1F25;
+/* LIGHT LEMON BACKGROUND — WORKS ACROSS ALL STREAMLIT CONTAINERS */
+html, body, .stApp,
+[data-testid="stAppViewContainer"],
+[data-testid="stAppViewBlockContainer"],
+.main, .block-container {
+    background: linear-gradient(135deg, #FFFCC2 0%, #FFF79A 100%) !important;
+    background-color: #FFF79A !important;
 }
 
-/* Background */
-.stApp {
-    background: FFF66C !important;
-    font-family: "Inter";
-}
-
-/* Card fix */
+/* CARD */
 .gc-card {
     background: #fff;
     border-radius: 14px;
@@ -554,7 +551,7 @@ st.markdown(
     display: none !important;
 }
 
-/* Fix metric cut-off */
+/* Metrics styling */
 div[data-testid="stMetric"]{
     padding:.6rem .8rem!important;
     background:#FFF!important;
@@ -580,9 +577,7 @@ div[data-testid="stMetricValue"]{font-size:1.10rem!important; white-space:nowrap
 }
 
 </style>
-""",
-    unsafe_allow_html=True,
-)
+""", unsafe_allow_html=True)
 
 # ============================================================
 # CONSTANTS
