@@ -535,7 +535,7 @@ st.markdown(
 
 /* Background */
 .stApp {
-    background: linear-gradient(135deg,#FFFBEA 0%,#FFF7CC 55%,#FFF3B0 100%);
+    background: FFF66C;
     font-family: "Inter";
 }
 
