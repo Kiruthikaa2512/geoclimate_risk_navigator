@@ -588,6 +588,31 @@ div[data-baseweb="select"] {
     overflow: visible !important;
 }
 
+            /* REAL FIX: Unclip dropdown menus and let them float above all cards */
+[data-testid="stSelectbox"] {
+    overflow: visible !important;
+}
+
+div[data-baseweb="select"] {
+    overflow: visible !important;
+    z-index: 999999 !important;
+}
+
+/* override streamlit clipping on container blocks */
+.stApp, .main, .block-container, .gc-card, .stContainer, .stColumn {
+    overflow: visible !important;
+}
+
+/* baseweb select dropdown panel */
+ul[role="listbox"] {
+    z-index: 999999 !important;
+}
+
+/* Prevent parent clipping caused by CSS transforms */
+.css-1d391kg, .css-12w0qpk {
+    overflow: visible !important;
+}
+
 </style>
 """, unsafe_allow_html=True)
 
