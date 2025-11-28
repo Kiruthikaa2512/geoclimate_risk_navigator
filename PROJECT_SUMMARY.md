@@ -1,4 +1,6 @@
-**GeoClimate AI – Command Center**
+## ** GeoClimate AI – Command Center**
+**Author:** Kiruthikaa Natarajan Srinivasan  
+**Date:** November 28, 2025  
 
 A global supply chain risk intelligence platform for evaluating, simulating, and optimizing trade lanes.
 
