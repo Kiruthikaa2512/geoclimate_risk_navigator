@@ -524,10 +524,9 @@ st.set_page_config(
 # ============================================================
 st.markdown("""
 <style>
-
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Sora:wght@600;700&display=swap');
 
-/* LIGHT LEMON BACKGROUND — WORKS ACROSS ALL STREAMLIT CONTAINERS */
+/* LIGHT LEMON BACKGROUND */
 html, body, .stApp,
 [data-testid="stAppViewContainer"],
 [data-testid="stAppViewBlockContainer"],
@@ -536,7 +535,7 @@ html, body, .stApp,
     background-color: #FFF9E6 !important;
 }
 
-/* CARD */
+/* CARD STYLING */
 .gc-card {
     background: #fff;
     border-radius: 14px;
@@ -544,6 +543,8 @@ html, body, .stApp,
     padding: 1rem 1.2rem;
     margin-bottom: .4rem;
     box-shadow: 0 12px 26px rgba(31,41,35,.12);
+    position: relative;
+    z-index: 1;
 }
 
 /* Fix blank bars */
@@ -575,65 +576,84 @@ div[data-testid="stMetricValue"]{font-size:1.10rem!important; white-space:nowrap
     font-weight:600;
     white-space:nowrap;
 }
-/* FIX DROPDOWN CLIPPING + OVERLAP */
-div[data-testid="stSelectbox"] {
+
+/* DROPDOWN FIXES - CRITICAL */
+/* Remove all clipping from parent containers */
+.stApp, .main, .block-container, .gc-card {
     overflow: visible !important;
 }
 
+/* Selectbox container fixes */
+[data-testid="stSelectbox"] {
+    position: relative;
+    z-index: 100;
+    overflow: visible !important;
+}
+
+/* BaseWeb dropdown container */
 div[data-baseweb="select"] {
+    position: relative;
+    z-index: 1000 !important;
+}
+
+/* Dropdown menu - force above everything */
+div[data-baseweb="popover"] {
+    position: fixed !important;
     z-index: 9999 !important;
 }
 
-.stApp, .block-container, .main {
-    overflow: visible !important;
-}
-
-            /* REAL FIX: Unclip dropdown menus and let them float above all cards */
-[data-testid="stSelectbox"] {
-    overflow: visible !important;
-}
-
-div[data-baseweb="select"] {
-    overflow: visible !important;
-    z-index: 999999 !important;
-}
-
-/* override streamlit clipping on container blocks */
-.stApp, .main, .block-container, .gc-card, .stContainer, .stColumn {
-    overflow: visible !important;
-}
-
-/* baseweb select dropdown panel */
-ul[role="listbox"] {
-    z-index: 999999 !important;
-}
-
-/* Prevent parent clipping caused by CSS transforms */
-.css-1d391kg, .css-12w0qpk {
-    overflow: visible !important;
-}
-/* FIX 1: Keep hero + card from blocking dropdowns */
-.gc-card, .gc-hero, .gc-hero-inner {
+div[role="listbox"] {
+    z-index: 9999 !important;
     position: relative !important;
-    z-index: 1 !important;
-    overflow: visible !important;
 }
 
-/* FIX 2: Force dropdown menu ABOVE EVERYTHING */
-div[role="listbox"],
-ul[role="listbox"],
-div[data-baseweb="menu"] {
+/* Ensure the dropdown panel can extend outside cards */
+[data-baseweb="menu"] {
+    z-index: 9999 !important;
     position: relative !important;
-    z-index: 999999999 !important;
+}
+
+/* Fix for any remaining clipping */
+section.main .block-container {
     overflow: visible !important;
 }
 
-/* FIX 3: Selectbox container must allow overflow */
-[data-testid="stSelectbox"] {
+div.stSelectbox > div > div {
     overflow: visible !important;
 }
 
+/* Hero styling */
+.gc-hero {
+    position: relative;
+    z-index: 1;
+}
+
+/* Risk badges */
+.risk-low { color: #059669; background: #D1FAE5; padding: 0.2rem 0.6rem; border-radius: 8px; }
+.risk-mod { color: #D97706; background: #FEF3C7; padding: 0.2rem 0.6rem; border-radius: 8px; }
+.risk-high { color: #DC2626; background: #FEE2E2; padding: 0.2rem 0.6rem; border-radius: 8px; }
+
+.tiny-label {
+    font-size: 0.75rem;
+    color: #6B7280;
+    margin-bottom: 0.5rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-weight: 600;
+}
+
+.ai-badge {
+    display: inline-block;
+    background: #4F46E5;
+    color: white;
+    padding: 0.3rem 0.8rem;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
 </style>
+
 """, unsafe_allow_html=True)
 
 # ============================================================
@@ -993,28 +1013,19 @@ from contextlib import contextmanager
 
 @contextmanager
 def card(title=None):
-    # Native Streamlit container (safe for selectboxes)
+    # Use Streamlit's native container for better widget support
     container = st.container()
-
+    
     with container:
-        # Wrap card style using a div INSIDE the container, 
-        # not as the container itself
-        st.markdown(
-            "<div class='gc-card' style='overflow:visible;'>",
-            unsafe_allow_html=True
-        )
-
+        # Apply card styling as an inner wrapper
+        st.markdown("<div class='gc-card'>", unsafe_allow_html=True)
+        
         if title:
-            st.markdown(
-                f"<p class='tiny-label'>{title}</p>",
-                unsafe_allow_html=True
-            )
-
-        # Use only Streamlit containers for interactive widgets
-        widget_area = st.container()
-        with widget_area:
-            yield
-
+            st.markdown(f"<p class='tiny-label'>{title}</p>", unsafe_allow_html=True)
+        
+        # Yield to the content
+        yield
+        
         st.markdown("</div>", unsafe_allow_html=True)
 
 
