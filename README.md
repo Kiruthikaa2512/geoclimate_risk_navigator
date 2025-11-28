@@ -1,74 +1,63 @@
-# GeoClimate AI – Command Center
+## ** GeoClimate AI – Command Center**
+**Author:** Kiruthikaa Natarajan Srinivasan  
+**Date:** November 28, 2025  
 
-**A nature-inspired control tower for global supply chain risk, resilience, and network design.**
+Geoclimate AI was created as an inspiration from my work experience of being in the supply chain for a decade and the usecase that I have seen throughout. Supply chain global logistics is often fragile and breakable when there is a natural calamity or any other vulnerability. 
 
 GeoClimate AI scores global transportation lanes across **Geopolitics, Climate, Logistics, and Cyber**, simulates disruptions, compares network options, and generates strategic insights — powered entirely by a **mock AI engine** (no API keys required).
 
 This makes it ideal for demos, prototyping, teaching, or secure on-prem setups where external API calls are restricted.
 
----
 
 # Features
 
 ### **1. Route Analyzer**
 
-* Score any lane between 30+ countries
-* Multi-dimensional risk model (Geo / Climate / Logistics / Cyber)
-* Conflict-aware scoring (Red Sea, Taiwan Strait, Black Sea, etc.)
-* Visuals:
+Route Analyzer has 30+ countries in the origin and destination countries list. The multi dimensional risk model has Geo, CClimate, Logistics and Cyber. 
+Based off the date selected, it lets users to know the conflict aware scoring against the mode chosen from the dropdown like Sea, Air, etc.,
+Visuals include Geo Map, Risk Radar. 
 
-  * **Geo map**
-  * **Risk radar**
+Other specific options where they get AI assistance are:
 * “Explain with AI” powered by the rule-based AI engine
 * Add lanes to comparison basket
 
----
-
 ### **2. Scenario Lab**
 
-Stress-test a lane by modifying:
+Scenario Lab is all about trying out the stress testing between the lanes by modifying:
 
 * Geopolitical factor
 * Climate exposure
 * Logistics volatility
 * Cyber posture
 
-AI explains:
+The Explain with AI options helps user to get information on:
 
 * Sensitivity
 * What changed
 * Implications
 * Recommended actions
 
----
-
 ### **3. Global Heatmap**
 
 World risk heatmap based on aggregated Geo/Climate scoring
 Country risk-trend timeline for last 6–24 months
 
----
-
 ### **4. AI Strategy Room**
 
-A tailored strategy assistant that:
-
+The AI Strategy Room is specifically tailored to handle the questions related only to the project we developed. 
+Special features of that module are:
 * Recognizes countries and lanes in your question
 * Distinguishes supply-chain vs. off-topic questions
 * Provides structured executive guidance
 * **Never leaks last_route context unless explicitly asked**
 
----
 
 ### **5. Network Optimizer**
+If user wants to check on how the  alternative routes would look like this screen provides them the visibility of routing alternatives:
 
-Auto-generates routing alternatives:
-
-* Mode shift (Sea ↔ Air)
+* Mode shift (Sea Air)
 * Region shift (Singapore / Netherlands hubs)
 * AI recommends best option
-
----
 
 ### **6. Export Center**
 
@@ -80,17 +69,17 @@ Export a clean JSON summary of:
 
 Download as `.txt`.
 
----
+
 
 # AI Layer (Mock Engine — No Keys Needed)
 
 This project uses a custom **heuristic AI engine** instead of OpenAI/Anthropic:
 
-✔ Works offline
-✔ Zero cost
-✔ No API keys
-✔ Fully predictable
-✔ Perfect for demos & prototyping
+Works offline
+Zero cost
+No API keys
+Fully predictable
+Perfect for demos & prototyping
 
 It emulates:
 
@@ -101,7 +90,6 @@ It emulates:
 
 while preventing the “overwriting everything with last route” bug.
 
----
 
 # UI & Styling
 
@@ -114,8 +102,6 @@ while preventing the “overwriting everything with last route” bug.
 * Tabs, metrics, badge components
 
 All styling is handled through injected CSS inside Streamlit.
-
----
 
 # Installation
 
@@ -140,7 +126,7 @@ venv\Scripts\activate          # Windows
 pip install -r requirements.txt
 ```
 
----
+
 
 # Run the app
 
@@ -154,12 +140,12 @@ App runs at:
 http://localhost:8501
 ```
 
----
 
-# 🗂️ Project Structure
+
+# Project Structure
 
 ```
-📦 geoclimate_risk_navigator
+geoclimate_risk_navigator
  ┣ 📄 app.py               # Main Streamlit app
  ┣ 📄 config.toml          # Theme overrides
  ┣ 📄 requirements.txt     # Dependencies
@@ -168,7 +154,7 @@ http://localhost:8501
  
 ```
 
----
+
 
 #  Tech Stack
 
@@ -177,8 +163,6 @@ http://localhost:8501
 * **Plotly**
 * **Pandas / NumPy**
 * **Custom Mock AI engine (rule-based NLP)**
-
----
 
 # Roadmap 
 
@@ -189,17 +173,13 @@ http://localhost:8501
 * ML-based disruption forecasting
 * AzureAD/Okta authentication
 
----
-
 # License
 
 MIT License — free for commercial and personal use.
-
----
 
 # Acknowledgements
 
 Designed with the principles of supply-chain network engineering, climate analytics, and real-time geopolitical risk modeling.
 
----
+
 

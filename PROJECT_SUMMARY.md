@@ -6,125 +6,36 @@ A global supply chain risk intelligence platform for evaluating, simulating, and
 
 **Overview**
 
+Geoclimate AI was created as an inspiration from my work experience of being in the supply chain for a decade and the usecase that I have seen throughout. Supply chain global logistics is often fragile and breakable when there is a natural calamity or any other vulnerability. 
+
 GeoClimate AI is an end-to-end risk intelligence platform designed to help organizations analyze international supply chains using four key domains: geopolitics, climate vulnerability, logistics reliability, and cybersecurity exposure. It integrates data modeling, mapping, simulation, and generative AI to form a decision-support system for global operations.
 
 The platform acts as a lightweight digital twin of trade networks, enabling teams to understand lane risks, simulate disruptions, compare alternatives, and generate decision-ready reports.
 
-**Core Modules and Their Purpose**
-**1. Route Analyzer**
+## Inspiration
+Coming from the decade of supply chain experience, and working as an EDI Project manager and currently pursuing my second Master's in Data Analytics, I have seen how fragile and unpredictable it can be when it comes to logistics and transportation. As we all know, during COVID, we had a major setback in terms of commuting and transporting things due to the pandemic restrictions. That gave me a spark to work on this niche space of exploring the possibilities with AI integrated into supply chain logistics. Companies still rely on static tools even as climate volatility, geopolitical tensions, port congestion, and cyber threats increase. I wanted to build a system that merges real-world supply chain intuition with AI-style intelligence to make routing decisions faster and smarter. This tool that I developed would help achieve the same. 
 
-Evaluates a selected trade lane between two countries via sea, air, road, or rail.
-It computes:
+## What it does
+GeoClimate AI is an end-to-end risk intelligence platform designed to help organizations analyze international supply chains using four key domains: geopolitics, climate vulnerability, logistics reliability, and cybersecurity exposure. It was designed to act as a digital twin of trade networks, enabling teams to understand lane risks, simulate disruptions, compare alternatives, and generate decision-ready reports. Basically, this application has 5 modules. The first module is Route Analyzer, which recommends the safest, fastest, or most resilient mode between any two countries. The second module is the Scenario lab module lets users test out and simulate possible disruptions between the countries. The third module is Global Heatmap, which helps users to see on the map the impacted countries and hotspots visually. The AI Strategy room makes this tool very special as it is designed specifically to answer only the questions related to this app. It provides real-time strategy advice for the users. The fourth module we have is the Network Optimizer, which generates optimized routing alternatives.
+The last module is Export Center, which lets users export summaries for leadership.
 
-- Geopolitical risk
+## How we built it
+The app was built using Python and Streamlit for a fast and interactive interface experience for the users. A rule-based mock LLM engine for advisory responses. Used Python libraries like Plotly for maps, charts, and heatmaps. Custom CSS command center for modern UI theme.
 
-- Climate and environmental risk
+## Challenges we ran into
+As I have integrated AI responses into the project, the usage of the API key made me struggle for a few days, literally. Tried OpenAI's project key, but that was not working well, and the AI was unable to produce results and ran into errors. As the OpenAI key's API keys were paid and had limited options for free, I chose to switch to the Groq API key, and for some reason, ran into a similar error, though it was set in Streamlit's secrets. Understood that exploring with the API key can be tried in future enhancements and decided to simulate “AI-like” responses without real LLM APIs. But then, avoiding irrelevant AI responses when context changes has become another challenging part. Still fixed all the possible errors and made sure that the mock AI produces appropriate results. 
 
-- Logistics risk
+I also ran into issues when changing the theme and overall background color. I was not satisfied with the half white background, hence I tried all the possible combinations and ended up with mild yellow with a subtle and decent look. 
 
-- Cybersecurity risk
+Pushing the app to production had issues with the version compatibility. I had to upgrade the requirements.txt to the most premium version of everything to make it work in production. 
 
-- Weighted overall score
+## Accomplishments that we're proud of
+Devpost Aethra's hackathon allowed me to build and complete a fully functional app from scratch, though I have built a lot of projects during my college coursework, but this one is very special as it was something that I tried from scratch with no guidance from my professor but the knowledge and hands-on we gained via assignments and rigorous projects helped me to achieve this today. 
 
-Includes:
+## What we learned
+I learnt that blending domain experience with AI/Data Analytics helps make incredible projects and can really solve a lot of real-world scenarios in the industry. I am motivated to try a lot of new topics with the experience I gained while working on this project.
 
-- Route map visualization
-
-- Risk radar
-
-- Cost estimation
-
-AI explanation of major drivers and mitigation options
-
-**Use**: Understand why a lane is risky and what factors contribute most to exposure.
-
-2. **Scenario Lab**
-
-Simulates disruption scenarios using adjustable multipliers across four dimensions.
-Users can model conditions such as:
-
-- Escalating conflict
-
-- Extreme weather
-
-- Congestion or port failures
-
-- Cybersecurity incidents
-
-Produces:
-
-Base vs stressed score comparison
-
-Charts for risk deltas
-
-AI interpretation of scenario implications
-
-**Use**: Test lane resilience under different stress conditions.
-
-3. **Global Heatmap**
-
-Displays a world heatmap combining geopolitical and climate risks.
-Includes simulated historical trends for any selected country.
-
-**Use**: Identify regional vulnerabilities and support sourcing or diversification strategy.
-
-4. **AI Strategy Room**
-
-A freeform advisory section powered by generative AI.
-Context includes:
-
-- Last analyzed lane
-
-- Stress test results
-
-- Current comparison basket
-
-Generates practical recommendations for:
-
-- Route planning
-
-- Risk mitigation
-
-- Strategic sourcing
-
-- Resilience building
-
-Use: Obtain high-level strategic insight tailored to current analysis.
-
-5. **Network Optimizer**
-
-Automatically generates alternative lane configurations:
-
-Transport mode shift
-
-Alternative origin region
-
-Combined origin and mode change
-
-Each alternative is risk-scored and compared, and AI explains the best choice.
-
-Use: Explore safer or more resilient network configurations.
-
-**6. Export Center**
-
-Provides structured exports of lane summaries in text and PDF formats.
-
-Includes:
-
-- Lane metadata
-
-- Dimension scores
-
-- Weighting preset
-
-- Conflict impacts
-
-- Risk categorization
-
-Use: Shareable documentation for team reviews, stakeholder briefings, and reports.
-
-**Why GeoClimate AI Matters**
-
-Global supply chains face rising instability driven by politics, climate, congestion, and cyber threats. GeoClimate AI offers a structured, transparent, and AI-driven method to understand exposure and make informed decisions quickly.
-
-It enhances clarity, supports scenario planning, and provides actionable recommendations—bridging detailed analytics with executive-level insight.
+## What's next for GeoClimate AI – Command Center
+This can be expanded to integrate real LLMs for more advanced strategic guidance.
+We can add live data sources: weather, port congestion, sanctions, and disruptions.
+I have also planned to build forecasting models for future lane risk. Additionally, we can expand this to achieve supplier-level details and SKU-level network views. This system can be evolved into a full digital twin of global logistics networks.
