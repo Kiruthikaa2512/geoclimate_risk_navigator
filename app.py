@@ -39,6 +39,89 @@ def generate_mock_response(system_prompt: str, user_prompt: str) -> str:
     - No external API calls
     """
     lower = user_prompt.lower()
+    # -------------------------------
+    # Extract context
+    # -------------------------------
+    route = st.session_state.get("last_route")
+    risks = st.session_state.get("last_risks")
+    scenario = st.session_state.get("scenario")
+    options = st.session_state.get("optimizer_options")
+
+    # Build context block (safe)
+    context_block = ""
+    if route and risks:
+        context_block += (
+            f"\n\n**Current lane in tool:** "
+            f"{route['origin']} → {route['dest']} via {route['mode'].upper()} "
+            f"(overall risk {risks['overall']}/100)"
+        )
+    if scenario:
+        context_block += "\n\n**Scenario context:** " + str(scenario)
+    if options:
+        context_block += f"\n\n**Network options configured:** {len(options)} alternatives."
+
+    # -------------------------------
+    # Helper: detect countries
+    # -------------------------------
+    def detect_countries(text: str):
+        t = text.lower()
+        found = []
+        for c in COUNTRY_LIST:
+            if c.lower() in t:
+                found.append(c)
+        return list(dict.fromkeys(found))   # unique, ordered
+
+    # =========================================================
+    # (1) SAFEST MODE BETWEEN TWO COUNTRIES
+    # =========================================================
+
+    countries_mentioned = detect_countries(user_prompt)
+    origin = dest = None
+
+    # If user mentions two countries → use them
+    if len(countries_mentioned) >= 2:
+        origin, dest = countries_mentioned[0], countries_mentioned[1]
+
+    safe_words = ["safe", "safest", "lower risk", "least risk", "secure"]
+    mode_words = ["mode", "air", "sea", "ocean", "ship", "road", "truck", "rail", "freight"]
+
+    is_safety_question = (
+        any(w in lower for w in safe_words)
+        and any(w in lower for w in mode_words)
+        and origin is not None
+        and dest is not None
+    )
+
+    if is_safety_question:
+        today = date.today()
+        mode_results = []
+
+        for m in ["sea", "air", "road", "rail"]:
+            r_model = compute_route_risk(origin, dest, m, today, "Balanced", True)
+            mode_results.append((m, r_model["overall"], r_model))
+
+        mode_results.sort(key=lambda x: x[1])
+        best_mode, best_score, best_risks = mode_results[0]
+
+        out = []
+        out.append(f"**🧭 Safety-Focused Mode Comparison: {origin} → {dest}**\n")
+        out.append("**Mode ranking (lower score = safer):**")
+
+        for m, score, r_model in mode_results:
+            out.append(
+                f"- **{m.upper()}** → overall risk **{score}/100** "
+                f"(Geo {r_model['geopolitical']}, Climate {r_model['climate']}, "
+                f"Logistics {r_model['logistics']}, Cyber {r_model['cyber']})"
+            )
+
+        out.append("")
+        out.append(
+            f"**Recommended primary mode for safety:** **{best_mode.upper()}** "
+            f"with modeled risk **{best_score}/100**."
+        )
+
+        return "\n".join(out)
+
 
     # ---- Pull context from the app ----
     route = st.session_state.get("last_route")
@@ -150,6 +233,7 @@ def generate_mock_response(system_prompt: str, user_prompt: str) -> str:
             lines.append(context_block)
 
         return "\n".join(lines)
+
 
     # =========================================================
     # 2) SAFEST MODE BETWEEN TWO COUNTRIES (e.g. India ↔ USA)
