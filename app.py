@@ -89,11 +89,10 @@ def generate_mock_response(system_prompt: str, user_prompt: str) -> str:
             lines.append(f"- **{name} ({val}/100)** — driven by {driver}.")
         return lines
 
-    # ---- 1) EXPLAIN ROUTE (used by Route Analyzer 'Explain with AI') ----
-    if (
-    ("route:" in user_prompt.lower() and "scores:" in user_prompt.lower())
-    and route and risks
-    ):
+    # =========================================================
+    # 1) EXPLAIN ROUTE (used by Route Analyzer 'Explain with AI')
+    # =========================================================
+    if ("route:" in lower and "scores:" in lower) and route and risks:
         lines = []
         lines.append(
             f"**🌍 Lane Intelligence: {route['origin']} → {route['dest']} ({route['mode'].upper()})**"
@@ -151,8 +150,10 @@ def generate_mock_response(system_prompt: str, user_prompt: str) -> str:
             lines.append(context_block)
 
         return "\n".join(lines)
-      
-    # ---- 2) SAFEST MODE BETWEEN TWO COUNTRIES (e.g. India ↔ USA) ----
+
+    # =========================================================
+    # 2) SAFEST MODE BETWEEN TWO COUNTRIES (e.g. India ↔ USA)
+    # =========================================================
     countries_mentioned = detect_countries(user_prompt)
     origin = dest = None
     if len(countries_mentioned) >= 2:
@@ -168,12 +169,11 @@ def generate_mock_response(system_prompt: str, user_prompt: str) -> str:
     )
 
     if is_safety_question and origin and dest:
-        # Compare modes using your risk model
         today = date.today()
         mode_results = []
         for m in ["sea", "air", "road", "rail"]:
-            r = compute_route_risk(origin, dest, m, today, "Balanced", True)
-            mode_results.append((m, r["overall"], r))
+            r_model = compute_route_risk(origin, dest, m, today, "Balanced", True)
+            mode_results.append((m, r_model["overall"], r_model))
 
         mode_results.sort(key=lambda x: x[1])  # lower = safer
         best_mode, best_score, best_risks = mode_results[0]
@@ -182,11 +182,11 @@ def generate_mock_response(system_prompt: str, user_prompt: str) -> str:
         lines.append(f"**🧭 Safety-Focused Mode Comparison: {origin} → {dest}**")
         lines.append("")
         lines.append("**Mode ranking (lower score = safer):**")
-        for m, score, r in mode_results:
+        for m, score, r_model in mode_results:
             lines.append(
                 f"- **{m.upper()}** → overall risk **{score}/100** "
-                f"(Geo {r['geopolitical']}, Climate {r['climate']}, "
-                f"Logistics {r['logistics']}, Cyber {r['cyber']})"
+                f"(Geo {r_model['geopolitical']}, Climate {r_model['climate']}, "
+                f"Logistics {r_model['logistics']}, Cyber {r_model['cyber']})"
             )
 
         lines.append("")
@@ -195,7 +195,6 @@ def generate_mock_response(system_prompt: str, user_prompt: str) -> str:
             f"with modeled risk **{best_score}/100**."
         )
 
-        # Reasoning by mode
         reason = []
         if best_mode == "air":
             reason.append("avoids the most volatile maritime chokepoints and port queues")
@@ -211,7 +210,7 @@ def generate_mock_response(system_prompt: str, user_prompt: str) -> str:
 
         if reason:
             lines.append("**Why this mode wins for safety:**")
-            lines.extend([f"- {r}" for r in reason])
+            lines.extend([f"- {r_txt}" for r_txt in reason])
 
         lines.append("")
         lines.append("**Practical playbook:**")
@@ -224,7 +223,9 @@ def generate_mock_response(system_prompt: str, user_prompt: str) -> str:
 
         return "\n".join(lines)
 
-    # ---- 3) SCENARIO LAB EXPLANATION (Base=..., Stressed=...) ----
+    # =========================================================
+    # 3) SCENARIO LAB EXPLANATION (Base=..., Stressed=...)
+    # =========================================================
     if "base=" in lower and "stressed=" in lower:
         lines = []
         lines.append("**📊 Scenario Lab – Stress Test Interpretation**")
@@ -263,8 +264,10 @@ def generate_mock_response(system_prompt: str, user_prompt: str) -> str:
 
         return "\n".join(lines)
 
-    # ---- 4) ROUTE COMPARISON (Compare these routes: ...) ----
-    if "compare these routes" in lower or "lane" in lower and "overall" in lower:
+    # =========================================================
+    # 4) ROUTE COMPARISON ("Compare these routes: ...")
+    # =========================================================
+    if "compare these routes" in lower or ("lane" in lower and "overall" in lower):
         lines = []
         lines.append("**🔄 Multi-Route Comparison & Recommendation**")
         lines.append("")
@@ -297,7 +300,9 @@ def generate_mock_response(system_prompt: str, user_prompt: str) -> str:
 
         return "\n".join(lines)
 
-    # ---- 5) NETWORK OPTIMIZER EXPLANATION (Options=..., Advise best choice) ----
+    # =========================================================
+    # 5) NETWORK OPTIMIZER ("Options=..., Advise best choice")
+    # =========================================================
     if "options=" in lower and "advise best choice" in lower:
         lines = []
         lines.append("**🎯 Network Optimizer – Recommended Configuration**")
@@ -321,20 +326,22 @@ def generate_mock_response(system_prompt: str, user_prompt: str) -> str:
             lines.append(context_block)
 
         return "\n".join(lines)
-    # ---- UNIVERSAL LOGIC: safest / cheapest route between countries ----
+
+    # =========================================================
+    # 6) UNIVERSAL LOGIC: safest / cheapest route between countries
+    # =========================================================
     if any(word in lower for word in ["safest", "cheap", "cheapest", "best route", "optimal route"]) and origin and dest:
         today = date.today()
         modes = ["sea", "air", "road", "rail"]
 
         results = []
         for m in modes:
-            r = compute_route_risk(origin, dest, m, today, "Balanced", True)
-            results.append((m, r["overall"], r))
+            r_model = compute_route_risk(origin, dest, m, today, "Balanced", True)
+            results.append((m, r_model["overall"], r_model))
 
-        # Safest = lowest risk
         safest_mode, safest_score, safest_risks = sorted(results, key=lambda x: x[1])[0]
 
-        # Cheapest estimation (domain realistic)
+        # Very simple cost ordering: sea < rail < road < air
         cost_order = {"sea": 1, "rail": 2, "road": 3, "air": 4}
         cheapest_mode = min(modes, key=lambda m: cost_order[m])
 
@@ -345,20 +352,43 @@ def generate_mock_response(system_prompt: str, user_prompt: str) -> str:
         lines.append(f"- **{safest_mode.upper()}** with modeled risk **{safest_score}/100**")
 
         lines.append("\n### 🟣 Cheapest mode")
-        lines.append("- **SEA freight** (lowest global cost baseline)")
+        lines.append(f"- **{cheapest_mode.upper()}** (lowest cost baseline in this model)")
 
         lines.append("\n### 🔄 Trade-off Summary")
         lines.append("- **Air** → safest + fastest, highest cost")
-        lines.append("- **Sea** → cheapest, slowest, highest climate/logistics risk")
-        lines.append("- **Rail** → stable for Asia–EU lanes")
-        lines.append("- **Road** → regional only")
+        lines.append("- **Sea** → cheapest, slowest, higher climate/logistics risk")
+        lines.append("- **Rail** → stable for Asia–EU style land corridors")
+        lines.append("- **Road** → regional / last-mile rather than full intercontinental route")
 
         if context_block:
             lines.append(context_block)
 
         return "\n".join(lines)
 
-    # ---- 6) GENERAL STRATEGY QUESTIONS (AI Strategy Room) ----
+    # =========================================================
+    # 7) GENERAL NON-DOMAIN QUESTIONS (sports, trivia, etc.)
+    # =========================================================
+    non_domain_keywords = [
+        "world cup", "cricket", "football", "soccer", "who won",
+        "nba", "movie", "actor", "singer", "music", "president",
+    ]
+
+    if any(k in lower for k in non_domain_keywords):
+        return (
+            "**ℹ️ General Knowledge Note**\n\n"
+            "This AI assistant is focused on **supply chain, geopolitics, climate, logistics "
+            "and cyber risk**.\n\n"
+            "The question you asked appears to be **outside this domain**, so I unfortunately "
+            "cannot provide an accurate answer.\n\n"
+            "Try asking things like:\n"
+            "- 'Safest mode between India and USA'\n"
+            "- 'How would conflict in the Red Sea affect my supply chain?'\n"
+            "- 'What's the best routing strategy for high-value cargo?'"
+        )
+
+    # =========================================================
+    # 8) GENERAL STRATEGY QUESTIONS (AI Strategy Room)
+    # =========================================================
     if "?" in user_prompt or "strategy" in lower or "plan" in lower:
         lines = []
         lines.append("**🤖 Strategic Advisory Response**")
@@ -385,7 +415,8 @@ def generate_mock_response(system_prompt: str, user_prompt: str) -> str:
         lines.append("- For each, define a **primary route** and at least one **fallback lane**.")
         lines.append("- Tighten **cyber hygiene** for core logistics systems and partners.")
         lines.append(
-            "- Adjust **sailing / flight windows** around known climate seasons (monsoon, hurricanes, typhoons)."
+            "- Adjust **sailing / flight windows** around known climate seasons "
+            "(monsoon, hurricanes, typhoons)."
         )
 
         lines.append("")
@@ -408,7 +439,9 @@ def generate_mock_response(system_prompt: str, user_prompt: str) -> str:
 
         return "\n".join(lines)
 
-    # ---- 7) DEFAULT EXECUTIVE SUMMARY ----
+    # =========================================================
+    # 9) DEFAULT EXECUTIVE SUMMARY
+    # =========================================================
     return """
 **🌐 GeoClimate AI Command Center Analysis**
 
