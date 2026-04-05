@@ -205,3 +205,13 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# --- Streamlit Secrets & Config ---
+# Ignore the local secrets file to prevent API key leaks to GitHub
+.streamlit/secrets.toml
+
+# Optional: If you want to keep your config.toml on GitHub but hide secrets:
+# (Already covered by the line above)
+
+# If you want to ignore the entire streamlit folder (not recommended if you want to save themes):
+# .streamlit/

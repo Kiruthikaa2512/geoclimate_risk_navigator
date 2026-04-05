@@ -1,3 +1,5 @@
+#:schema https://json.schemastore.org/any.json
+
 [server]
 headless = true
 enableCORS = false
@@ -8,9 +10,12 @@ port = 8501
 gatherUsageStats = false
 
 [theme]
-base="light"
-primaryColor="#4CAF7B"
-backgroundColor="#FFFFFF00"
-secondaryBackgroundColor="#FFFFFF"
-textColor="#1A1F25"
-font="sans serif"
+base = "light"
+primaryColor = "#059669"
+backgroundColor = "#F9FAFB"
+secondaryBackgroundColor = "#FFFFFF"
+textColor = "#111827"
+font = "sans serif"
+
+[client]
+toolbarMode = "minimal"
