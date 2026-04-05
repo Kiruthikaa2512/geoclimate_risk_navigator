@@ -105,11 +105,26 @@ def render_route_analyzer():
         dest = st.text_input("Destination Hub", "Canada")
         mode = st.selectbox("Freight Mode", ["Ocean", "Air", "Rail", "Road"])
         if st.button("Generate Intelligence"):
-            risks = {"geopolitical": random.randint(30, 70), "climate": random.randint(20, 85), 
-                     "logistics": random.randint(40, 75), "cyber": random.randint(20, 60)}
+            # STABILITY FIX: Create a unique 'seed' based on your text inputs
+            # This makes the "random" numbers stay the same for the same route
+            data_seed = f"{origin.lower()}{dest.lower()}{mode.lower()}"
+            random.seed(data_seed) 
+            
+            risks = {
+                "geopolitical": random.randint(35, 65), 
+                "climate": random.randint(25, 80), 
+                "logistics": random.randint(40, 70), 
+                "cyber": random.randint(30, 60)
+            }
             risks["overall"] = sum(risks.values()) // 4
+            
+            # Store data in session
             st.session_state["last_route"] = {"origin": origin, "dest": dest, "mode": mode, "date": str(date.today())}
             st.session_state["last_risks"] = risks
+            
+            # Reset the random seed for the rest of the app so other things stay random
+            random.seed(None)
+            
             st.rerun()
         st.markdown('</div>', unsafe_allow_html=True)
 
