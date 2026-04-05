@@ -9,7 +9,7 @@ import streamlit as st
 import google.generativeai as genai
 
 # ============================================================
-# 1. UNIVERSAL AI CONNECTOR (Finalized for Gemini 3)
+# 1. AI CONNECTOR
 # ============================================================
 def ai_call(user_prompt: str):
     try:
@@ -17,8 +17,6 @@ def ai_call(user_prompt: str):
             return "⚠️ API Key missing in .streamlit/secrets.toml"
         
         genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
-        
-        # Using the specific verified model from your environment list
         model = genai.GenerativeModel("gemini-3-flash-preview")
 
         route = st.session_state.get("last_route", {})
@@ -32,68 +30,96 @@ def ai_call(user_prompt: str):
         response = model.generate_content(f"{context}\n\nQuestion: {user_prompt}")
         return response.text
     except Exception as e:
-        return f"⚠️ Strategic AI Error: {str(e)}\n\nPlease ensure your API key is enabled for Gemini 3 models."
+        return f"⚠️ Connection Error: {str(e)}"
 
 # ============================================================
-# 2. ARCTIC EMERALD UI (Updated for 2026 Streamlit Syntax)
+# 2. PREMIUM ENTERPRISE UI (Navy & Electric Blue)
 # ============================================================
 st.set_page_config(page_title="GeoClimate AI Command Center", layout="wide", page_icon="🌐")
 
 st.markdown("""
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=Sora:wght@600;700&family=Inter:wght@400;500;600&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Sora:wght@700;800&family=Inter:wght@400;600;700;800&display=swap');
     
+    /* Milder Professional Background */
     html, body, [data-testid="stAppViewContainer"] {
-        background-color: #F3F4F6 !important;
-        color: #1F2937 !important;
+        background: linear-gradient(180deg, #F1F5F9 0%, #E2E8F0 100%) !important;
         font-family: 'Inter', sans-serif;
     }
 
+    /* Navy Hero Banner */
     .gc-hero {
-        background: linear-gradient(90deg, #064E3B 0%, #059669 100%);
+        background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%);
         color: white;
-        padding: 40px;
-        border-radius: 15px;
-        margin-bottom: 25px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        padding: 55px;
+        border-radius: 24px;
+        margin-bottom: 30px;
+        box-shadow: 0 15px 30px rgba(15, 23, 42, 0.15);
+        border-left: 10px solid #3B82F6;
+    }
+    .gc-hero h1 { 
+        font-family: 'Sora', sans-serif; 
+        font-size: 3.6rem !important; 
+        font-weight: 800; 
+        margin: 0; 
+        letter-spacing: -2px;
+    }
+
+    /* Ultra-Bold High-Contrast Tabs */
+    .stTabs [data-baseweb="tab-list"] { gap: 15px; }
+    .stTabs [data-baseweb="tab"] {
+        background-color: #CBD5E1;
+        border-radius: 12px;
+        padding: 18px 35px !important;
+        font-size: 1.3rem !important;
+        color: #0F172A !important; /* Dark text for contrast */
+        font-weight: 800 !important; /* Maximum Boldness */
+        border: 2px solid #94A3B8;
+        white-space: nowrap;
+        transition: all 0.3s ease;
+    }
+    .stTabs [aria-selected="true"] {
+        background: #1E293B !important;
+        color: #3B82F6 !important; /* Electric Blue Highlight */
+        border-color: #3B82F6 !important;
+        transform: translateY(-2px);
+    }
+
+    /* Metric Styling */
+    [data-testid="stMetricValue"] { 
+        font-family: 'Sora', sans-serif !important; 
+        font-size: 3.8rem !important; 
+        font-weight: 800 !important; 
+        color: #1E293B !important; 
+    }
+    [data-testid="stMetricLabel"] { 
+        font-size: 1.2rem !important; 
+        font-weight: 800 !important; 
+        color: #475569 !important; 
     }
 
     .gc-card {
         background: white !important;
-        border: 1px solid #E5E7EB !important;
-        border-radius: 12px !important;
-        padding: 24px !important;
+        border: 1px solid #CBD5E1 !important;
+        border-radius: 20px !important;
+        padding: 35px !important;
         margin-bottom: 20px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
     }
 
-    .stTabs [data-baseweb="tab-list"] {
-        gap: 10px;
-        background-color: transparent;
-    }
-    .stTabs [data-baseweb="tab"] {
-        background-color: #E5E7EB;
-        border-radius: 8px 8px 0 0;
-        padding: 10px 20px;
-        color: #374151 !important;
-        font-weight: 600;
-    }
-    .stTabs [aria-selected="true"] {
-        background-color: #059669 !important;
+    .stButton > button {
+        background-color: #3B82F6 !important;
         color: white !important;
-    }
-
-    div[data-testid="stMetric"] {
-        background: #F9FAFB !important;
-        border: 1px solid #10B981 !important;
-        border-radius: 10px !important;
-        padding: 15px !important;
+        font-weight: 800 !important;
+        font-size: 1.3rem !important;
+        border-radius: 12px !important;
+        padding: 15px 30px !important;
+        width: 100%;
     }
 </style>
 """, unsafe_allow_html=True)
 
 # ============================================================
-# 3. TAB CONTENT FUNCTIONS
+# 3. COMPONENT FUNCTIONS
 # ============================================================
 
 def render_route_analyzer():
@@ -104,27 +130,21 @@ def render_route_analyzer():
         origin = st.text_input("Origin Hub", "Germany")
         dest = st.text_input("Destination Hub", "Canada")
         mode = st.selectbox("Freight Mode", ["Ocean", "Air", "Rail", "Road"])
+        
         if st.button("Generate Intelligence"):
-            # STABILITY FIX: Create a unique 'seed' based on your text inputs
-            # This makes the "random" numbers stay the same for the same route
-            data_seed = f"{origin.lower()}{dest.lower()}{mode.lower()}"
-            random.seed(data_seed) 
+            # STABILITY LOGIC: Seed the random generator using input strings
+            # This ensures the values stay the same unless the input changes.
+            seed_val = hash(f"{origin}{dest}{mode}")
+            random.seed(seed_val)
             
-            risks = {
-                "geopolitical": random.randint(35, 65), 
-                "climate": random.randint(25, 80), 
-                "logistics": random.randint(40, 70), 
-                "cyber": random.randint(30, 60)
-            }
-            risks["overall"] = sum(risks.values()) // 4
-            
-            # Store data in session
             st.session_state["last_route"] = {"origin": origin, "dest": dest, "mode": mode, "date": str(date.today())}
-            st.session_state["last_risks"] = risks
-            
-            # Reset the random seed for the rest of the app so other things stay random
-            random.seed(None)
-            
+            st.session_state["last_risks"] = {
+                "geopolitical": random.randint(30, 70), 
+                "climate": random.randint(40, 85), 
+                "logistics": random.randint(25, 60),
+                "overall": random.randint(45, 68)
+            }
+            random.seed(None) # Reset seed
             st.rerun()
         st.markdown('</div>', unsafe_allow_html=True)
 
@@ -133,104 +153,78 @@ def render_route_analyzer():
             st.markdown('<div class="gc-card">', unsafe_allow_html=True)
             r = st.session_state["last_risks"]
             m1, m2, m3, m4 = st.columns(4)
-            m1.metric("Geopolitics", r['geopolitical'])
-            m2.metric("Climate", r['climate'])
-            m3.metric("Logistics", r['logistics'])
-            m4.metric("Risk Index", r['overall'])
+            m1.metric("Geo-Politics", f"{r['geopolitical']}%")
+            m2.metric("Climate", f"{r['climate']}%")
+            m3.metric("Logistics", f"{r['logistics']}%")
+            m4.metric("Risk Index", f"{r['overall']}%")
             
             fig = go.Figure(data=go.Scatterpolar(
-                r=[r['geopolitical'], r['climate'], r['logistics'], r['cyber'], r['geopolitical']],
-                theta=['Geo', 'Climate', 'Logistics', 'Cyber', 'Geo'],
-                fill='toself', line_color='#059669'
+                r=[r['geopolitical'], r['climate'], r['logistics'], r['overall'], r['geopolitical']],
+                theta=['Geo', 'Climate', 'Logistics', 'Operational', 'Geo'],
+                fill='toself', line_color='#3B82F6'
             ))
-            fig.update_layout(polar=dict(radialaxis=dict(visible=True, range=[0, 100])), showlegend=False)
-            # 2026 Fix: width='stretch' instead of use_container_width
-            st.plotly_chart(fig, width='stretch')
+            fig.update_layout(polar=dict(radialaxis=dict(visible=True, range=[0, 100])), height=380, margin=dict(t=20, b=20))
+            st.plotly_chart(fig, use_container_width=True)
             st.markdown('</div>', unsafe_allow_html=True)
 
-def render_network_optimizer():
+def render_report_center():
     st.markdown('<div class="gc-card">', unsafe_allow_html=True)
-    st.subheader("📈 Network Optimizer")
+    st.subheader("📄 Executive Strategy Report")
     if "last_route" in st.session_state:
-        st.write(f"Optimizing routes for **{st.session_state['last_route']['origin']}** lane...")
-        df = pd.DataFrame({
-            "Alternative Route": ["Northern Sea Route", "Suez Canal Bypass", "Trans-Pacific Air"],
-            "Resilience Score": [88, 74, 91],
-            "Cost Efficiency": ["High", "Medium", "Low"]
-        })
-        st.table(df)
-    else:
-        st.info("Run a Route Analysis to unlock optimization insights.")
-    st.markdown('</div>', unsafe_allow_html=True)
-
-def render_export_center():
-    st.markdown('<div class="gc-card">', unsafe_allow_html=True)
-    st.subheader("📄 Executive Report Export")
-    if "last_route" in st.session_state:
-        r, rs = st.session_state["last_route"], st.session_state["last_risks"]
-        report = f"""
-        GEOCLIMATE AI STRATEGIC REPORT
-        Generated: {r['date']}
-        -------------------------------------------
-        LANE: {r['origin']} to {r['dest']}
+        r = st.session_state["last_route"]
+        rs = st.session_state["last_risks"]
+        report_text = f"""
+        GEOCLIMATE STRATEGIC AUDIT
+        --------------------------
+        DATE: {r['date']}
+        LANE: {r['origin']} TO {r['dest']}
         MODE: {r['mode']}
         
-        RISK SCORECARD:
-        Overall: {rs['overall']}/100
-        Geopolitical: {rs['geopolitical']}
-        Climate: {rs['climate']}
-        Logistics: {rs['logistics']}
-        
-        ADVISORY: Based on current indicators, we recommend 
-        increasing safety stock by 12% at destination hubs.
+        RISK PROFILE:
+        - Geopolitical Stability: {rs['geopolitical']}%
+        - Climate Resilience: {rs['climate']}%
+        - Logistics Integrity: {rs['logistics']}%
+        - AGGREGATE RISK INDEX: {rs['overall']}%
         """
-        st.text_area("Report Preview", report, height=200)
-        st.download_button("Download Full Report", report, file_name="GeoClimate_Strategy.txt")
+        st.text_area("Live Report Preview", report_text, height=250)
+        st.download_button("Download Full Audit (PDF/TXT)", report_text, file_name=f"GeoClimate_{r['origin']}_Report.txt")
     else:
-        st.info("No data available for export.")
+        st.warning("⚠️ No Data: Generate intelligence to compile report.")
     st.markdown('</div>', unsafe_allow_html=True)
 
 # ============================================================
-# MAIN APPLICATION
+# MAIN
 # ============================================================
 def main():
-    st.markdown('<div class="gc-hero"><h1>GeoClimate AI Command Center</h1><p>Predictive Intelligence for Global Logistics (v2026.1)</p></div>', unsafe_allow_html=True)
+    st.markdown('<div class="gc-hero"><h1>GeoClimate AI Command Center</h1><p>Executive Logistics Intelligence Platform (v2.6)</p></div>', unsafe_allow_html=True)
     
-    tabs = st.tabs(["Route Analyzer", "Network Optimizer", "AI Strategy", "Global Heatmap", "Export Center"])
+    tabs = st.tabs(["📍 Route Analyzer", "📈 Network Optimizer", "🤖 AI Strategy", "🗺️ Risk Map", "📄 Report Center"])
     
     with tabs[0]: render_route_analyzer()
-    with tabs[1]: render_network_optimizer()
-    with tabs[2]: 
+    with tabs[1]:
         st.markdown('<div class="gc-card">', unsafe_allow_html=True)
-        st.subheader("🤖 AI Strategy Assistant")
-        q = st.text_input("Enter Query (e.g., How does the Suez bottleneck affect this route?)")
-        if st.button("Consult AI"):
-            with st.spinner("Analyzing signals..."):
-                st.markdown("---")
-                st.markdown(ai_call(q))
+        st.subheader("📈 Network Optimizer")
+        if "last_route" in st.session_state:
+            st.info(f"Optimizing node resiliency for {st.session_state['last_route']['origin']}...")
+            st.table(pd.DataFrame({"Alternative": ["Arctic Lane", "Cape Bypass"], "Risk Delta": ["-12%", "+15%"], "Cost": ["High", "Medium"]}))
+        else: st.warning("Analysis required.")
         st.markdown('</div>', unsafe_allow_html=True)
     
+    with tabs[2]:
+        st.markdown('<div class="gc-card">', unsafe_allow_html=True)
+        st.subheader("🤖 Strategic AI")
+        q = st.text_input("Consult System")
+        if st.button("Generate Advisory"): st.write(ai_call(q))
+        st.markdown('</div>', unsafe_allow_html=True)
+        
     with tabs[3]:
         st.markdown('<div class="gc-card">', unsafe_allow_html=True)
-        st.subheader("🗺️ Global Volatility Map")
-        # Fix: Using ISO-3 Codes and width='stretch'
-        df_map = pd.DataFrame({
-            'ISO_Code': ['DEU', 'CAN', 'MEX', 'CHN', 'EGY'], 
-            'Risk': [20, 15, 55, 75, 80],
-            'Country': ['Germany', 'Canada', 'Mexico', 'China', 'Egypt']
-        })
-        fig = px.choropleth(
-            df_map, 
-            locations="ISO_Code", 
-            locationmode='ISO-3', 
-            color="Risk", 
-            hover_name="Country",
-            color_continuous_scale="RdYlGn_r"
-        )
-        st.plotly_chart(fig, width='stretch')
+        st.subheader("🗺️ Global Volatility")
+        fig_map = px.choropleth(pd.DataFrame({'ISO':['DEU','CAN','USA','CHN'], 'R':[25,15,20,70]}), locations="ISO", color="R", color_continuous_scale="YlOrRd")
+        st.plotly_chart(fig_map, use_container_width=True)
         st.markdown('</div>', unsafe_allow_html=True)
-    
-    with tabs[4]: render_export_center()
+
+    with tabs[4]: render_report_center()
 
 if __name__ == "__main__":
     main()
