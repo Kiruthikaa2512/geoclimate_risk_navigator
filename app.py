@@ -590,7 +590,7 @@ def ai_call(user_prompt: str):
 
     try:
         genai.configure(api_key=api_key)
-        model = genai.GenerativeModel("gemini-2.0-flash")
+        model = genai.GenerativeModel("gemini-3.1-flash-lite")
 
         route = st.session_state.get("last_route", {})
         risks = st.session_state.get("last_risks", {})
@@ -621,8 +621,8 @@ Answer in concise executive language with:
         response = model.generate_content(f"{context}\n\nUser question: {user_prompt}")
         return response.text
 
-    except Exception as e:
-        return fallback_advisory(user_prompt) + f"\n\nLive AI connection failed: {str(e)}"
+    except Exception:
+        return fallback_advisory(user_prompt)
 
 
 # ============================================================
